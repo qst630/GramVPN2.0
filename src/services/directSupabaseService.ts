@@ -459,31 +459,30 @@ class DirectSupabaseService {
       console.log('🔗 URL:', import.meta.env.VITE_SUPABASE_URL);
       console.log('🔑 Key length:', import.meta.env.VITE_SUPABASE_ANON_KEY?.length);
       
-      // Test 1: Basic connectivity
-      console.log('📡 Шаг 1: Тестирование API эндпоинта...');
+      // Test 1: Direct API call (skip HEAD request that might cause CORS issues)
+      console.log('📡 Шаг 1: Прямой запрос к API...');
       const healthResponse = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/rest/v1/`, {
-        method: 'HEAD',
+        method: 'GET',
         headers: {
           'apikey': import.meta.env.VITE_SUPABASE_ANON_KEY,
-          'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}`
+          'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}`,
+          'Content-Type': 'application/json'
         }
       });
       
       console.log('📡 Ответ API:', healthResponse.status, healthResponse.statusText);
       
-      if (!healthResponse.ok) {
-        if (healthResponse.status === 401) {
-          console.log('✅ API доступен (401 = нужна авторизация)');
-        } else {
-          throw new Error(`API недоступен: ${healthResponse.status} ${healthResponse.statusText}`);
-        }
+      if (!healthResponse.ok && healthResponse.status !== 401) {
+        throw new Error(`API недоступен: ${healthResponse.status} ${healthResponse.statusText}`);
       }
+      
+      console.log('✅ API доступен');
       
       // Test 2: Check tables
       console.log('🗄️ Шаг 2: Проверка таблицы users...');
       const { data, error } = await supabase
         .from('users')
-        .select('count', { count: 'exact', head: true })
+        .select('id', { count: 'exact', head: true })
         .limit(1);
 
       console.log('🗄️ Результат запроса к таблице:', { 
@@ -515,7 +514,7 @@ class DirectSupabaseService {
       if (error instanceof TypeError && error.message.includes('Failed to fetch')) {
         return { 
           success: false, 
-          error: 'Сетевая ошибка: Не удается подключиться к Supabase. Проверьте URL и интернет.' 
+          error: 'CORS или сетевая ошибка. Проект может быть активен, но браузер блокирует запросы.' 
         };
       }
       
