@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { User, UserStats, SubscriptionPlan } from '../types/vpn';
 import { directSupabaseService } from '../services/directSupabaseService';
+import { subscriptionService } from '../services/subscriptionService';
 
 interface UseVPNReturn {
   user: User | null;
@@ -17,6 +18,7 @@ interface UseVPNReturn {
   createSubscription: (planType: string, promoCode?: string) => Promise<void>;
   validatePromoCode: (code: string) => Promise<{ valid: boolean; promo_code?: any; error?: string }>;
   refreshUser: () => Promise<void>;
+  isCreatingSubscription: boolean;
 }
 
 export const useVPN = (telegramUser: any, referralCode?: string): UseVPNReturn => {
@@ -27,6 +29,7 @@ export const useVPN = (telegramUser: any, referralCode?: string): UseVPNReturn =
   const [referralStats, setReferralStats] = useState({ referrals_count: 0, bonus_days_earned: 0 });
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [isCreatingSubscription, setIsCreatingSubscription] = useState(false);
 
   const subscriptionPlans = directSupabaseService.getSubscriptionPlans();
 
@@ -145,12 +148,18 @@ export const useVPN = (telegramUser: any, referralCode?: string): UseVPNReturn =
       throw new Error('No telegram user');
     }
 
+    setIsCreatingSubscription(true);
     try {
       setError(null);
       console.log('🎯 Starting trial...');
       
-      const result = await directSupabaseService.startTrial(telegramUser.id);
-      console.log('✅ Trial started:', result);
+      const result = await subscriptionService.startFreeTrial(telegramUser.id);
+      
+      if (!result.success) {
+        throw new Error(result.error || 'Failed to start trial');
+      }
+      
+      console.log('✅ Trial started successfully:', result.message);
       
       // Refresh user data
       await loadUser();
@@ -160,6 +169,8 @@ export const useVPN = (telegramUser: any, referralCode?: string): UseVPNReturn =
       setError(errorMessage);
       console.error('Error starting trial:', err);
       throw new Error(errorMessage);
+    } finally {
+      setIsCreatingSubscription(false);
     }
   };
 
@@ -168,33 +179,23 @@ export const useVPN = (telegramUser: any, referralCode?: string): UseVPNReturn =
       throw new Error('No user data');
     }
 
+    setIsCreatingSubscription(true);
     try {
       setError(null);
       console.log('💳 Creating subscription:', { planType, promoCode });
       
-      // Get plan details
-      const plan = subscriptionPlans.find(p => p.type === planType);
-      if (!plan) {
-        throw new Error('Invalid plan type');
-      }
-
-      // Calculate price with promo code
-      let finalPrice = plan.price;
-      if (promoCode) {
-        const validation = await directSupabaseService.validatePromoCode(promoCode);
-        if (validation.valid && validation.promo_code) {
-          finalPrice = plan.price * (1 - validation.promo_code.discount_percent / 100);
-        }
-      }
-
-      const result = await directSupabaseService.createSubscription(
-        telegramUser.id,
-        planType,
-        finalPrice,
-        promoCode
-      );
+      const result = await subscriptionService.createSubscription({
+        telegramId: telegramUser.id,
+        subscriptionType: planType as any,
+        promoCode,
+        paymentAmount: 0 // Will be calculated based on promo code
+      });
       
-      console.log('✅ Subscription created:', result);
+      if (!result.success) {
+        throw new Error(result.error || 'Failed to create subscription');
+      }
+      
+      console.log('✅ Subscription created successfully:', result.message);
       
       // Refresh user data
       await loadUser();
@@ -204,6 +205,8 @@ export const useVPN = (telegramUser: any, referralCode?: string): UseVPNReturn =
       setError(errorMessage);
       console.error('Error creating subscription:', err);
       throw new Error(errorMessage);
+    } finally {
+      setIsCreatingSubscription(false);
     }
   };
 
@@ -233,6 +236,7 @@ export const useVPN = (telegramUser: any, referralCode?: string): UseVPNReturn =
     subscriptionPlans,
     loading,
     error,
+    isCreatingSubscription,
     startTrial,
     createSubscription,
     validatePromoCode,

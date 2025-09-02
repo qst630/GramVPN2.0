@@ -133,10 +133,19 @@ export const WelcomeScreen: React.FC<WelcomeScreenProps> = ({
           <button 
             className={`primary-button trial-button ${buttonContent.className} ${buttonContent.disabled ? 'disabled' : ''}`}
             onClick={onStartTrial}
-            disabled={buttonContent.disabled}
+            disabled={buttonContent.disabled || loading}
           >
-            <span className="button-text">{buttonContent.text}</span>
-            <span className="button-subtitle">{buttonContent.subtitle}</span>
+            {loading ? (
+              <>
+                <span className="button-text">Создание подписки...</span>
+                <span className="button-subtitle">Подождите немного</span>
+              </>
+            ) : (
+              <>
+                <span className="button-text">{buttonContent.text}</span>
+                <span className="button-subtitle">{buttonContent.subtitle}</span>
+              </>
+            )}
           </button>
           
           <button 
@@ -209,10 +218,19 @@ export const WelcomeScreen: React.FC<WelcomeScreenProps> = ({
         <button 
           className={`primary-button trial-button ${buttonContent.className} ${buttonContent.disabled ? 'disabled' : ''}`}
           onClick={onStartTrial}
-          disabled={buttonContent.disabled}
+          disabled={buttonContent.disabled || loading}
         >
-          <span className="button-text">{buttonContent.text}</span>
-          <span className="button-subtitle">{buttonContent.subtitle}</span>
+          {loading ? (
+            <>
+              <span className="button-text">Создание подписки...</span>
+              <span className="button-subtitle">Подождите немного</span>
+            </>
+          ) : (
+            <>
+              <span className="button-text">{buttonContent.text}</span>
+              <span className="button-subtitle">{buttonContent.subtitle}</span>
+            </>
+          )}
         </button>
         
         <button 

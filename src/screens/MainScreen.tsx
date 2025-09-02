@@ -6,12 +6,14 @@ interface MainScreenProps {
   user: User | null;
   freeTrialStatus: FreeTrialStatus | null;
   onShowSubscription: () => void;
+  hasSubscriptionLink?: boolean;
 }
 
 export const MainScreen: React.FC<MainScreenProps> = ({ 
   user, 
   freeTrialStatus, 
-  onShowSubscription 
+  onShowSubscription,
+  hasSubscriptionLink = false
 }) => {
   const getVpnStatus = () => {
     if (freeTrialStatus?.active) {
@@ -120,6 +122,22 @@ export const MainScreen: React.FC<MainScreenProps> = ({
           <button className="primary-button" onClick={onShowSubscription}>
             Выбрать тариф
           </button>
+        </div>
+      )}
+
+      {user?.subscription_link && (
+        <div className="connection-section">
+          <h4>Подключение к VPN</h4>
+          <p>Ваша конфигурация готова! Нажмите кнопку ниже для подключения:</p>
+          <button 
+            className="primary-button connect-button"
+            onClick={() => window.open(user.subscription_link, '_blank')}
+          >
+            🚀 Подключить VPN
+          </button>
+          <div className="connection-help">
+            <p>После нажатия откроется приложение V2rayTun с вашими настройками</p>
+          </div>
         </div>
       )}
 

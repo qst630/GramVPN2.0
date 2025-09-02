@@ -29,6 +29,7 @@ function App() {
     subscriptionPlans,
     loading,
     error,
+    isCreatingSubscription,
     startTrial,
     createSubscription,
     validatePromoCode,
@@ -69,10 +70,14 @@ function App() {
       return;
     }
 
+    if (isCreatingSubscription) {
+      return; // Prevent multiple clicks
+    }
+
     try {
       await startTrial();
       showAlert(
-        '🎉 Поздравляем! Ваш 3-дневный пробный период активирован!\n\nВы можете начать использовать GramVPN прямо сейчас.'
+        '🎉 Поздравляем! Ваш 3-дневный пробный период активирован!\n\nСсылка для подключения создана. Нажмите "🚀 Подключить VPN" для настройки.'
       );
       setActiveScreen('main');
     } catch (error) {
@@ -88,9 +93,13 @@ function App() {
   const handleShowPayment = async (planType: string, promoCode?: string) => {
     hapticFeedback.medium();
     
+    if (isCreatingSubscription) {
+      return; // Prevent multiple clicks
+    }
+
     try {
       await createSubscription(planType, promoCode);
-      showAlert('🎉 Подписка успешно оформлена! Добро пожаловать в GramVPN!');
+      showAlert('🎉 Подписка успешно оформлена!\n\nСсылка для подключения создана. Нажмите "🚀 Подключить VPN" для настройки.');
       setActiveScreen('main');
     } catch (error) {
       showAlert(`Ошибка оформления подписки: ${error instanceof Error ? error.message : 'Попробуйте позже'}`);
@@ -224,6 +233,7 @@ function App() {
             subscriptionType={subscriptionType}
             daysRemaining={daysRemaining}
             onShowSubscription={handleShowSubscription}
+            hasSubscriptionLink={!!user?.subscription_link}
           />
         ) : (
           <WelcomeScreen
@@ -239,12 +249,11 @@ function App() {
       {activeScreen === 'subscription' && (
         <SubscriptionScreen
           subscriptionPlans={subscriptionPlans}
-          subscriptionPlans={subscriptionPlans}
           onShowPayment={handleShowPayment}
-          onValidatePromoCode={validatePromoCode}
           onValidatePromoCode={validatePromoCode}
           user={user}
           referralStats={referralStats}
+          isCreatingSubscription={isCreatingSubscription}
         />
       )}
 

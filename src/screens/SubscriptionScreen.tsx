@@ -19,6 +19,7 @@ interface SubscriptionScreenProps {
   onValidatePromoCode: (code: string) => Promise<{ valid: boolean; promo_code?: any; error?: string }>;
   user: any;
   referralStats: { invited: number; daysEarned: number };
+  isCreatingSubscription?: boolean;
 }
 
 type PlanType = '30days' | '90days' | '365days';
@@ -41,7 +42,8 @@ export const SubscriptionScreen: React.FC<SubscriptionScreenProps> = ({
   onShowPayment,
   onValidatePromoCode,
   user,
-  referralStats 
+  referralStats,
+  isCreatingSubscription = false
 }) => {
   const [selectedPlan, setSelectedPlan] = useState<PlanType>('90days');
   const [promoCode, setPromoCode] = useState('');
@@ -322,11 +324,20 @@ export const SubscriptionScreen: React.FC<SubscriptionScreenProps> = ({
       </div>
 
       <button className="primary-button" onClick={handlePayment}>
-        {selectedPlanData?.currentPrice === 0 ? 'Получить бесплатно' : 'Оформить подписку'}
-        {selectedPlanData?.hasDiscount && selectedPlanData?.currentPrice > 0 && isPromoValidForPlan(selectedPlan) && (
-          <span className="button-discount">
-            {` (со скидкой ${getDiscountPercent(selectedPlan)}%)`}
-          </span>
+        {isCreatingSubscription ? (
+          <>
+            <span className="button-text">Создание подписки...</span>
+            <span className="button-subtitle">Настройка VPN сервера</span>
+          </>
+        ) : (
+          <>
+            {selectedPlanData?.currentPrice === 0 ? 'Получить бесплатно' : 'Оформить подписку'}
+            {selectedPlanData?.hasDiscount && selectedPlanData?.currentPrice > 0 && isPromoValidForPlan(selectedPlan) && (
+              <span className="button-discount">
+                {` (со скидкой ${getDiscountPercent(selectedPlan)}%)`}
+              </span>
+            )}
+          </>
         )}
       </button>
 
