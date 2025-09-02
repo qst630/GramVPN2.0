@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { User, UserStats, SubscriptionPlan } from '../types/vpn';
-import { vpnService } from '../services/vpnService';
+import { directSupabaseService } from '../services/directSupabaseService';
 
 interface UseVPNReturn {
   user: User | null;
@@ -28,7 +28,7 @@ export const useVPN = (telegramUser: any, referralCode?: string): UseVPNReturn =
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  const subscriptionPlans = vpnService.getSubscriptionPlans();
+  const subscriptionPlans = directSupabaseService.getSubscriptionPlans();
 
   const loadUser = async () => {
     if (!telegramUser) {
@@ -65,13 +65,13 @@ export const useVPN = (telegramUser: any, referralCode?: string): UseVPNReturn =
       // Get or create user
       console.log('🔍 Getting or creating user for Telegram ID:', telegramUser.id);
       console.log('🎫 Using referral code:', referralCode || 'None');
-      const userData = await vpnService.getOrCreateUser(telegramUser, referralCode);
+      const userData = await directSupabaseService.getOrCreateUser(telegramUser, referralCode);
       console.log('✅ User data:', userData);
       setUser(userData);
 
       // Get user status (subscription info)
       console.log('📊 Getting user status...');
-      const status = await vpnService.getUserStatus(telegramUser.id);
+      const status = await directSupabaseService.getUserStatus(telegramUser.id);
       console.log('📊 User status:', status);
       
       setSubscriptionType(status.subscription_type);
@@ -80,7 +80,7 @@ export const useVPN = (telegramUser: any, referralCode?: string): UseVPNReturn =
 
       // Get referral stats
       console.log('📈 Getting referral stats...');
-      const stats = await vpnService.getReferralStats(telegramUser.id);
+      const stats = await directSupabaseService.getReferralStats(telegramUser.id);
       console.log('📊 Referral stats:', stats);
       setReferralStats(stats);
 
@@ -124,7 +124,7 @@ export const useVPN = (telegramUser: any, referralCode?: string): UseVPNReturn =
       setError(null);
       console.log('🎯 Starting trial...');
       
-      const result = await vpnService.startTrial(telegramUser.id);
+      const result = await directSupabaseService.startTrial(telegramUser.id);
       console.log('✅ Trial started:', result);
       
       // Refresh user data
@@ -156,13 +156,13 @@ export const useVPN = (telegramUser: any, referralCode?: string): UseVPNReturn =
       // Calculate price with promo code
       let finalPrice = plan.price;
       if (promoCode) {
-        const validation = await vpnService.validatePromoCode(promoCode);
+        const validation = await directSupabaseService.validatePromoCode(promoCode);
         if (validation.valid && validation.promo_code) {
           finalPrice = plan.price * (1 - validation.promo_code.discount_percent / 100);
         }
       }
 
-      const result = await vpnService.createSubscription(
+      const result = await directSupabaseService.createSubscription(
         telegramUser.id,
         planType,
         finalPrice,
@@ -184,7 +184,7 @@ export const useVPN = (telegramUser: any, referralCode?: string): UseVPNReturn =
 
   const validatePromoCode = async (code: string) => {
     try {
-      return await vpnService.validatePromoCode(code);
+      return await directSupabaseService.validatePromoCode(code);
     } catch (err) {
       console.error('Error validating promo code:', err);
       return { valid: false, error: 'Ошибка проверки промокода' };

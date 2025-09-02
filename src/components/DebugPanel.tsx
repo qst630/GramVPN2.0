@@ -1,7 +1,6 @@
 import React, { useState } from 'react';
 import { Bug, Database, User, Trash2, Wifi, Settings } from 'lucide-react';
-import { userService } from '../services/supabaseUserService';
-import { testSupabaseConnection } from '../lib/supabase';
+import { directSupabaseService } from '../services/directSupabaseService';
 
 interface DebugPanelProps {
   user: any;
@@ -29,9 +28,7 @@ export const DebugPanel: React.FC<DebugPanelProps> = ({ user, onRefresh }) => {
       
       addLog(`Creating test VPN user: ${testUser.first_name} (ID: ${testUser.id})`);
       
-      // Import vpnService instead of userService
-      const { vpnService } = await import('../services/vpnService');
-      const result = await vpnService.getOrCreateUser(testUser);
+      const result = await directSupabaseService.getOrCreateUser(testUser);
       addLog(`✅ VPN User created successfully: ${result.referral_code}`);
       onRefresh();
     } catch (error) {
@@ -53,7 +50,7 @@ export const DebugPanel: React.FC<DebugPanelProps> = ({ user, onRefresh }) => {
     setLoading(true);
     try {
       addLog(`Starting trial for user: ${user.id}`);
-      await userService.startFreeTrial(user.id);
+      await directSupabaseService.startTrial(user.telegram_id);
       addLog(`✅ Trial started successfully`);
       onRefresh();
     } catch (error) {
@@ -72,7 +69,7 @@ export const DebugPanel: React.FC<DebugPanelProps> = ({ user, onRefresh }) => {
     setLoading(true);
     try {
       addLog(`Checking trial status for user: ${user.id}`);
-      const status = await userService.getFreeTrialStatus(user.id);
+      const status = await directSupabaseService.getUserStatus(user.telegram_id);
       addLog(`✅ Trial status: ${JSON.stringify(status, null, 2)}`);
     } catch (error) {
       addLog(`❌ Error checking trial: ${error}`);
@@ -84,7 +81,7 @@ export const DebugPanel: React.FC<DebugPanelProps> = ({ user, onRefresh }) => {
   const testConnection = async () => {
     setLoading(true);
     try {
-      addLog('🧪 TESTING VPN FUNCTION CONNECTION...');
+      addLog('🧪 TESTING DIRECT SUPABASE CONNECTION...');
       
       // Check environment first
       const url = import.meta.env.VITE_SUPABASE_URL;
@@ -96,53 +93,19 @@ export const DebugPanel: React.FC<DebugPanelProps> = ({ user, onRefresh }) => {
         return;
       }
       
-      // Test VPN Function availability
-      const vpnFunctionUrl = `${url}/functions/v1/vpn-management`;
-      addLog(`🔗 VPN Function URL: ${vpnFunctionUrl}`);
+      addLog(`🔗 Supabase URL: ${url}`);
+      addLog(`🔑 API Key: ${key.substring(0, 20)}...`);
       
-      // Test 1: Direct POST request (skip OPTIONS to avoid CORS preflight issues)
-      addLog('🔍 Step 1: Testing direct function call...');
-      try {
-        const postResponse = await fetch(vpnFunctionUrl, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${key}`,
-          },
-          body: JSON.stringify({ 
-            action: 'get_user_status', 
-            telegram_id: 123456789 
-          })
-        });
-        
-        addLog(`📡 Function call: ${postResponse.status} ${postResponse.statusText}`);
-        
-        if (postResponse.status === 404) {
-          addLog('❌ FUNCTION NOT FOUND (404)');
-          addLog('💡 The vpn-management function is not deployed');
-          addLog('💡 Deploy it in Supabase Dashboard → Edge Functions');
-          addLog('💡 Or use the deployment commands in the project');
-          return;
-        } else if (postResponse.ok) {
-          const responseData = await postResponse.json();
-          addLog('✅ FUNCTION WORKING CORRECTLY');
-          addLog(`📊 Response: ${JSON.stringify(responseData, null, 2)}`);
-        } else {
-          const errorText = await postResponse.text();
-          addLog(`⚠️ Function error (${postResponse.status}): ${errorText}`);
-          if (postResponse.status === 500) {
-            addLog('💡 This might be a function runtime error');
-            addLog('💡 Check Supabase Dashboard → Edge Functions → Logs');
-          }
-        }
-      } catch (postError) {
-        addLog(`❌ Function call failed: ${postError}`);
-        if (postError instanceof TypeError && postError.message.includes('Failed to fetch')) {
-          addLog('💡 DIAGNOSIS: Function is not deployed or not accessible');
-          addLog('💡 SOLUTION 1: Deploy function in Supabase Dashboard');
-          addLog('💡 SOLUTION 2: Check if project is paused');
-          addLog('💡 SOLUTION 3: Verify API keys are correct');
-        }
+      // Test direct Supabase connection
+      const result = await directSupabaseService.testConnection();
+      
+      if (result.success) {
+        addLog('✅ DIRECT SUPABASE CONNECTION SUCCESSFUL');
+        addLog('💡 No Edge Functions needed - using direct REST API');
+      } else {
+        addLog(`❌ CONNECTION FAILED: ${result.error}`);
+        addLog('💡 Check your Supabase configuration');
+        addLog('💡 Make sure database tables exist (run migrations)');
       }
       
     } catch (error) {
@@ -400,7 +363,7 @@ export const DebugPanel: React.FC<DebugPanelProps> = ({ user, onRefresh }) => {
             disabled={loading}
           >
             <Wifi size={14} />
-            Test Connection
+            Test Direct Connection
           </button>
           
           <button 
@@ -427,7 +390,7 @@ export const DebugPanel: React.FC<DebugPanelProps> = ({ user, onRefresh }) => {
             disabled={loading}
           >
             <User size={14} />
-            Test VPN User Creation
+            Test User Creation
           </button>
           
           <button 
@@ -445,16 +408,16 @@ export const DebugPanel: React.FC<DebugPanelProps> = ({ user, onRefresh }) => {
           <button 
             className="debug-button"
             onClick={() => {
-              addLog('📋 DEPLOYMENT INSTRUCTIONS:');
-              addLog('1. Open Supabase Dashboard');
-              addLog('2. Go to Edge Functions');
-              addLog('3. Deploy vpn-management function');
-              addLog('4. Or run: supabase functions deploy vpn-management');
+              addLog('📋 DIRECT SUPABASE MODE:');
+              addLog('✅ No Edge Functions needed');
+              addLog('✅ Direct REST API calls to Supabase');
+              addLog('✅ Works immediately after DB setup');
+              addLog('💡 Just run migrations in Supabase Dashboard');
             }}
             disabled={loading}
           >
             <Settings size={14} />
-            Show Deploy Instructions
+            Show Direct Mode Info
           </button>
         </div>
       </div>
