@@ -84,46 +84,83 @@ export const DebugPanel: React.FC<DebugPanelProps> = ({ user, onRefresh }) => {
   const testConnection = async () => {
     setLoading(true);
     try {
-      addLog('🧪 Testing VPN Function connection...');
+      addLog('🧪 TESTING VPN FUNCTION CONNECTION...');
+      
+      // Check environment first
+      const url = import.meta.env.VITE_SUPABASE_URL;
+      const key = import.meta.env.VITE_SUPABASE_ANON_KEY;
+      
+      if (!url || !key) {
+        addLog('❌ ENVIRONMENT VARIABLES MISSING');
+        addLog('💡 Click "Connect to Supabase" button to configure');
+        return;
+      }
       
       // Test VPN Function availability
-      addLog('🔌 Testing VPN Function availability...');
-      const vpnFunctionUrl = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/vpn-management`;
+      const vpnFunctionUrl = `${url}/functions/v1/vpn-management`;
       addLog(`🔗 VPN Function URL: ${vpnFunctionUrl}`);
       
+      // Test 1: OPTIONS request (CORS preflight)
+      addLog('🔍 Step 1: Testing CORS preflight...');
       try {
-        const vpnResponse = await fetch(vpnFunctionUrl, {
+        const optionsResponse = await fetch(vpnFunctionUrl, {
+          method: 'OPTIONS',
+          headers: {
+            'Origin': window.location.origin,
+            'Access-Control-Request-Method': 'POST',
+            'Access-Control-Request-Headers': 'content-type, authorization'
+          }
+        });
+        
+        addLog(`🔍 CORS preflight: ${optionsResponse.status} ${optionsResponse.statusText}`);
+        
+        if (optionsResponse.status === 404) {
+          addLog('❌ FUNCTION NOT FOUND (404)');
+          addLog('💡 The vpn-management function is not deployed');
+          addLog('💡 Deploy it in Supabase Dashboard → Edge Functions');
+          return;
+        } else if (!optionsResponse.ok) {
+          addLog(`❌ CORS preflight failed: ${optionsResponse.status}`);
+          return;
+        } else {
+          addLog('✅ CORS preflight successful');
+        }
+      } catch (corsError) {
+        addLog(`❌ CORS preflight failed: ${corsError}`);
+        return;
+      }
+      
+      // Test 2: Actual POST request
+      addLog('📡 Step 2: Testing actual function call...');
+      try {
+        const postResponse = await fetch(vpnFunctionUrl, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
-            'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}`,
+            'Authorization': `Bearer ${key}`,
           },
-          body: JSON.stringify({ action: 'get_user_status', telegram_id: 123456789 })
+          body: JSON.stringify({ 
+            action: 'get_user_status', 
+            telegram_id: 123456789 
+          })
         });
         
-        addLog(`🔌 VPN Function status: ${vpnResponse.status} ${vpnResponse.statusText}`);
+        addLog(`📡 Function call: ${postResponse.status} ${postResponse.statusText}`);
         
-        if (vpnResponse.status === 404) {
-          addLog('❌ VPN FUNCTION NOT DEPLOYED');
-          addLog('💡 SOLUTION: VPN Function needs to be deployed to Supabase');
-          addLog('💡 Go to Supabase Dashboard → Edge Functions → Deploy vpn-management function');
-        } else if (vpnResponse.status >= 400) {
-          const errorText = await vpnResponse.text();
-          addLog(`⚠️ VPN Function error: ${errorText}`);
+        if (postResponse.ok) {
+          const responseData = await postResponse.json();
+          addLog('✅ FUNCTION WORKING CORRECTLY');
+          addLog(`📊 Response: ${JSON.stringify(responseData, null, 2)}`);
         } else {
-          addLog('✅ VPN Function is available');
-          const responseData = await vpnResponse.json();
-          addLog(`📊 Response data: ${JSON.stringify(responseData, null, 2)}`);
+          const errorText = await postResponse.text();
+          addLog(`⚠️ Function error: ${errorText}`);
         }
-      } catch (vpnError) {
-        addLog(`❌ VPN Function test failed: ${vpnError}`);
-        if (vpnError instanceof TypeError && vpnError.message.includes('Failed to fetch')) {
-          addLog('💡 This suggests VPN Functions are not available or not deployed');
-        }
+      } catch (postError) {
+        addLog(`❌ Function call failed: ${postError}`);
       }
       
     } catch (error) {
-      addLog(`❌ UNEXPECTED ERROR: ${error}`);
+      addLog(`❌ CONNECTION TEST ERROR: ${error}`);
     } finally {
       setLoading(false);
     }

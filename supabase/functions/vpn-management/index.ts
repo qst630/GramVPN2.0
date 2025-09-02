@@ -3,8 +3,9 @@ import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type, x-requested-with',
   'Access-Control-Allow-Methods': 'POST, OPTIONS',
+  'Access-Control-Max-Age': '86400',
 }
 
 // Generate unique referral code
@@ -31,8 +32,14 @@ function generateSubscriptionLink(userId: number, serverConfig: any): string {
 
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
-    return new Response('ok', { headers: corsHeaders })
+    return new Response(null, { 
+      status: 200,
+      headers: corsHeaders 
+    })
   }
+
+  console.log('🚀 VPN Function called:', req.method, req.url)
+  console.log('📡 Headers:', Object.fromEntries(req.headers.entries()))
 
   try {
     const supabaseAdmin = createClient(
@@ -46,7 +53,22 @@ serve(async (req) => {
       }
     )
 
-    const { action, ...payload } = await req.json()
+    let requestBody;
+    try {
+      requestBody = await req.json()
+    } catch (jsonError) {
+      console.error('❌ JSON parse error:', jsonError)
+      return new Response(
+        JSON.stringify({ error: 'Invalid JSON in request body' }),
+        { 
+          status: 400,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
+        }
+      )
+    }
+
+    const { action, ...payload } = requestBody
+    console.log('🎯 Action:', action, 'Payload:', payload)
 
     switch (action) {
       case 'get_or_create_user': {

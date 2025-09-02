@@ -25,16 +25,42 @@ class VPNService {
       return this.handleMockRequest(action, payload);
     }
 
+    // Check if we have required environment variables
+    if (!import.meta.env.VITE_SUPABASE_URL || !import.meta.env.VITE_SUPABASE_ANON_KEY) {
+      console.log('⚠️ Missing Supabase config, switching to mock mode');
+      this.isMockMode = true;
+      return this.handleMockRequest(action, payload);
+    }
+
     console.log('🌐 Calling VPN Function:', action, 'URL:', VPN_FUNCTION_URL);
     console.log('📡 Payload:', payload);
     console.log('🔑 Has Auth Key:', !!import.meta.env.VITE_SUPABASE_ANON_KEY);
 
     try {
+      // First, test if the function exists with a simple OPTIONS request
+      console.log('🔍 Testing function availability...');
+      const optionsResponse = await fetch(VPN_FUNCTION_URL, {
+        method: 'OPTIONS',
+        headers: {
+          'Origin': window.location.origin,
+          'Access-Control-Request-Method': 'POST',
+          'Access-Control-Request-Headers': 'content-type, authorization'
+        }
+      });
+      
+      console.log('📡 OPTIONS response:', optionsResponse.status, optionsResponse.statusText);
+      
+      if (!optionsResponse.ok) {
+        throw new Error(`Function not available: ${optionsResponse.status} ${optionsResponse.statusText}`);
+      }
+
+      // Now make the actual request
       const response = await fetch(VPN_FUNCTION_URL, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}`,
+          'x-client-info': 'gramvpn-webapp/1.0.0',
         },
         body: JSON.stringify({ action, ...payload })
       });
@@ -62,15 +88,18 @@ class VPNService {
     } catch (error) {
       console.error('VPN service error:', error);
       
-      if (error instanceof TypeError && error.message.includes('Failed to fetch')) {
-        console.log('🚨 Network error - VPN Function not reachable, falling back to mock mode');
-        this.isMockMode = true;
-        return this.handleMockRequest(action, payload);
-      }
+      // Check for various error conditions that indicate function is not available
+      const errorMessage = error instanceof Error ? error.message : String(error);
       
-      // Check if it's a 404 (function not deployed)
-      if (error.message.includes('404') || error.message.includes('Not Found')) {
-        console.log('🚨 VPN Function not deployed (404), falling back to mock mode');
+      if (
+        error instanceof TypeError && errorMessage.includes('Failed to fetch') ||
+        errorMessage.includes('CORS') ||
+        errorMessage.includes('404') ||
+        errorMessage.includes('Not Found') ||
+        errorMessage.includes('Function not available')
+      ) {
+        console.log('🚨 VPN Function not available, falling back to mock mode');
+        console.log('💡 This usually means the Edge Function is not deployed');
         this.isMockMode = true;
         return this.handleMockRequest(action, payload);
       }
