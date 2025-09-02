@@ -54,6 +54,14 @@ export const SubscriptionScreen: React.FC<SubscriptionScreenProps> = ({
 
   const handlePromoChange = async (value: string) => {
     setPromoCode(value);
+    
+    // If promo code is empty, reset validation immediately
+    if (!value.trim()) {
+      setPromoValidation(null);
+      setPromoLoading(false);
+      return;
+    }
+    
     setPromoValidation(null);
     
     if (value.length >= 3) {
@@ -171,9 +179,16 @@ export const SubscriptionScreen: React.FC<SubscriptionScreenProps> = ({
   const togglePromoInput = () => {
     setShowPromoInput(!showPromoInput);
     if (!showPromoInput) {
+      // Reset promo code and validation when hiding input
       setPromoCode('');
       setPromoValidation(null);
     }
+  };
+
+  // Reset validation when promo code is cleared
+  const handlePromoInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const value = e.target.value;
+    handlePromoChange(value);
   };
 
   const copyReferralCode = async () => {
@@ -285,7 +300,7 @@ export const SubscriptionScreen: React.FC<SubscriptionScreenProps> = ({
               className="promo-input"
               placeholder="Введите промокод"
               value={promoCode}
-              onChange={(e) => handlePromoChange(e.target.value)}
+              onChange={handlePromoInputChange}
             />
             {promoValidation?.valid && (
               <div className="promo-check valid">
