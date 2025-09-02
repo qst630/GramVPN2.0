@@ -667,7 +667,7 @@ class DirectSupabaseService {
     const updatedUser = {
       ...user,
       subscription_status: true,
-      subscription_link: 'v2ray://eyJzZXJ2ZXIiOiJubDEuZ3JhbXZwbi5jb20iLCJwb3J0Ijo0NDN9'
+      subscription_link: 'https://connect.gramvpn.shop/?key=v2raytun://import/https://connect.gramvpn.shop/subscription/' + telegramId + '?expire=' + Math.floor((Date.now() + 3 * 24 * 60 * 60 * 1000) / 1000)
     };
 
     this.mockUsers.set(telegramId, updatedUser);

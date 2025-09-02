@@ -63,7 +63,14 @@ class SubscriptionService {
       // 3. Get available servers
       const { data: servers, error: serversError } = await supabase
         .from('servers')
-        .select('*')
+        .select(`
+          id, server_name, server_ip, country, status,
+          vless_type, vless_security, vless_fp, vless_sni, 
+          vless_sid, vless_spx, vless_flow, server_port,
+          xui_api_url, xui_username, xui_password,
+          vless_domain, vless_port, vless_path, inbound_id,
+          vless_public_key, active_subscribers, server_role
+        `)
         .eq('status', true)
         .order('active_subscribers', { ascending: true });
 

@@ -36,6 +36,10 @@ interface VLESSConfig {
   fp: string;
   type: string;
   host: string;
+  flow?: string;
+  pbk?: string;
+  sid?: string;
+  spx?: string;
 }
 
 class XUIService {
@@ -181,29 +185,46 @@ class XUIService {
 
   // Generate VLESS configuration
   generateVLESSConfig(server: XUIServer, client: XUIClient): VLESSConfig {
+    // Use server configuration from database
     return {
-      server: server.vless_domain || server.server_ip,
-      port: server.vless_port,
+      server: server.server_ip, // Use IP for Reality protocol
+      port: server.server_port || server.vless_port,
       id: client.id,
-      path: server.vless_path,
-      security: 'tls',
-      sni: server.vless_domain,
-      fp: 'chrome',
-      type: 'ws',
-      host: server.vless_domain,
+      path: server.vless_path || '/',
+      security: server.vless_security || 'reality',
+      sni: server.vless_sni || 'google.com',
+      fp: server.vless_fp || 'chrome',
+      type: server.vless_type || 'tcp',
+      host: server.vless_sni || server.server_ip,
+      flow: server.vless_flow,
+      pbk: server.vless_public_key,
+      sid: server.vless_sid,
+      spx: server.vless_spx
     };
   }
 
   // Generate VLESS URL
   generateVLESSUrl(config: VLESSConfig, serverName: string): string {
-    const params = new URLSearchParams({
-      type: config.type,
-      security: config.security,
-      path: config.path,
-      host: config.host,
-      sni: config.sni,
-      fp: config.fp,
-    });
+    const params = new URLSearchParams();
+    
+    // Add parameters based on protocol type
+    params.set('type', config.type);
+    params.set('security', config.security);
+    params.set('fp', config.fp);
+    
+    if (config.security === 'reality') {
+      // Reality protocol parameters
+      if (config.pbk) params.set('pbk', config.pbk);
+      if (config.sni) params.set('sni', config.sni);
+      if (config.sid) params.set('sid', config.sid);
+      if (config.spx) params.set('spx', config.spx);
+      if (config.flow) params.set('flow', config.flow);
+    } else {
+      // TLS/WS parameters
+      if (config.path) params.set('path', config.path);
+      if (config.host) params.set('host', config.host);
+      if (config.sni) params.set('sni', config.sni);
+    }
 
     return `vless://${config.id}@${config.server}:${config.port}?${params.toString()}#${encodeURIComponent(serverName)}`;
   }
