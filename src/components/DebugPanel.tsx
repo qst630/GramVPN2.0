@@ -638,6 +638,50 @@ export const DebugPanel: React.FC<DebugPanelProps> = ({ user, onRefresh }) => {
           
           <button 
             className="debug-button"
+            onClick={async () => {
+              addLog('🎫 TESTING PROMO CODE VALIDATION...');
+              
+              if (!import.meta.env.VITE_SUPABASE_URL || !import.meta.env.VITE_SUPABASE_ANON_KEY) {
+                addLog('❌ Supabase not configured');
+                return;
+              }
+              
+              try {
+                // Test direct database query for promo codes
+                addLog('📡 Testing direct query to promo_codes table...');
+                const response = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/rest/v1/promo_codes?select=*&code=eq.NEWYEAR50`, {
+                  method: 'GET',
+                  headers: {
+                    'apikey': import.meta.env.VITE_SUPABASE_ANON_KEY,
+                    'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}`,
+                    'Content-Type': 'application/json'
+                  }
+                });
+                
+                addLog(`📡 Response status: ${response.status} ${response.statusText}`);
+                
+                if (response.ok) {
+                  const data = await response.json();
+                  addLog(`✅ Found ${data.length} promo codes with NEWYEAR50`);
+                  if (data.length > 0) {
+                    addLog(`📊 Promo code details: ${JSON.stringify(data[0], null, 2)}`);
+                  }
+                } else {
+                  const errorText = await response.text();
+                  addLog(`❌ Query failed: ${errorText}`);
+                }
+              } catch (error) {
+                addLog(`❌ Network error: ${error}`);
+              }
+            }}
+            disabled={loading}
+          >
+            <Database size={14} />
+            Test Promo Codes
+          </button>
+          
+          <button 
+            className="debug-button"
             onClick={() => {
               addLog('🔧 RLS ПОЛИТИКИ - ПОШАГОВОЕ РЕШЕНИЕ:');
               addLog('');

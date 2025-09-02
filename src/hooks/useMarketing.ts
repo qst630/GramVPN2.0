@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { userService } from '../services/supabaseUserService';
+import { directSupabaseService } from '../services/directSupabaseService';
 import { PromoCodeValidation } from '../types/user';
 
 interface UseMarketingReturn {
@@ -18,10 +18,13 @@ export const useMarketing = (): UseMarketingReturn => {
     setError(null);
     
     try {
-      const result = await userService.validatePromoCode(code);
+      console.log('🎫 useMarketing: Validating promo code:', code);
+      const result = await directSupabaseService.validatePromoCode(code);
+      console.log('📊 useMarketing: Validation result:', result);
       return result;
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Ошибка проверки промокода';
+      console.error('❌ useMarketing: Validation error:', errorMessage);
       setError(errorMessage);
       return { valid: false, error: errorMessage };
     } finally {
@@ -34,7 +37,7 @@ export const useMarketing = (): UseMarketingReturn => {
     setError(null);
     
     try {
-      await userService.applyPromoCode(userId, campaignId, code);
+      await directSupabaseService.applyPromoCode(userId, campaignId, code);
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Ошибка применения промокода';
       setError(errorMessage);

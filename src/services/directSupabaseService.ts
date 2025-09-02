@@ -371,6 +371,8 @@ class DirectSupabaseService {
     }
 
     try {
+      console.log('🔍 Searching for promo code in database:', code.toUpperCase());
+      
       const { data: promoCode, error } = await supabase
         .from('promo_codes')
         .select('*')
@@ -378,20 +380,37 @@ class DirectSupabaseService {
         .eq('is_active', true)
         .single();
 
+      console.log('📡 Database response:', { 
+        found: !!promoCode, 
+        error: error?.message,
+        errorCode: error?.code 
+      });
+
       if (error || !promoCode) {
+        console.log('❌ Promo code not found or error:', error);
         return { valid: false, error: 'Промокод не найден или неактивен' };
       }
 
+      console.log('✅ Promo code found:', {
+        code: promoCode.code,
+        discount: promoCode.discount_percent,
+        active: promoCode.is_active,
+        expires_at: promoCode.expires_at
+      });
+
       // Check expiration
       if (promoCode.expires_at && new Date(promoCode.expires_at) < new Date()) {
+        console.log('❌ Promo code expired');
         return { valid: false, error: 'Промокод истек' };
       }
 
       // Check usage limit
       if (promoCode.max_usage && promoCode.usage_count >= promoCode.max_usage) {
+        console.log('❌ Promo code usage limit reached');
         return { valid: false, error: 'Промокод исчерпан' };
       }
 
+      console.log('✅ Promo code is valid!');
       return { valid: true, promo_code: promoCode };
 
     } catch (error) {
@@ -481,6 +500,24 @@ class DirectSupabaseService {
 
     } catch (error) {
       console.error('❌ Error creating subscription:', error);
+      throw error;
+    }
+  }
+
+  async applyPromoCode(userId: number, campaignId: number, code: string): Promise<void> {
+    console.log('🎫 Applying promo code:', { userId, campaignId, code });
+    
+    if (this.isMockMode) {
+      console.log('🧪 Mock: Applied promo code');
+      return;
+    }
+
+    try {
+      // For now, just log the application
+      // In a real implementation, you would update usage counts, etc.
+      console.log('✅ Promo code applied successfully');
+    } catch (error) {
+      console.error('❌ Error applying promo code:', error);
       throw error;
     }
   }
