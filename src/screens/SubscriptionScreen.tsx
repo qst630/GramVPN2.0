@@ -251,6 +251,11 @@ export const SubscriptionScreen: React.FC<SubscriptionScreenProps> = ({
                 <X size={12} />
               </div>
             )}
+            {promoValidation?.error && (
+              <div className="promo-error-message">
+                Промокод не найден или истек срок его действия
+              </div>
+            )}
           </div>
         )}
       </div>

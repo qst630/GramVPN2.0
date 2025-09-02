@@ -369,6 +369,21 @@ body {
   border: 1px solid rgba(99, 102, 241, 0.2);
 }
 
+.promo-error-message {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  right: 0;
+  margin-top: 8px;
+  font-size: 12px;
+  color: #ef4444;
+  background: rgba(239, 68, 68, 0.1);
+  padding: 8px 12px;
+  border-radius: 8px;
+  border: 1px solid rgba(239, 68, 68, 0.2);
+  text-align: center;
+}
+
 /* Plan pricing with discounts */
 .plan-name-container {
   display: flex;
