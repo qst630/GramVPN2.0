@@ -455,15 +455,43 @@ class DirectSupabaseService {
     try {
       console.log('🧪 Testing direct Supabase connection...');
       
-      // Test basic query
+      // Test 1: Basic API connectivity
+      console.log('📡 Step 1: Testing API endpoint...');
+      const healthResponse = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/rest/v1/`, {
+        method: 'HEAD',
+        headers: {
+          'apikey': import.meta.env.VITE_SUPABASE_ANON_KEY,
+          'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}`
+        }
+      });
+      
+      console.log('📡 API Response:', healthResponse.status, healthResponse.statusText);
+      
+      if (!healthResponse.ok) {
+        throw new Error(`API not accessible: ${healthResponse.status} ${healthResponse.statusText}`);
+      }
+      
+      // Test 2: Check if users table exists
+      console.log('🗄️ Step 2: Testing users table...');
       const { data, error } = await supabase
         .from('users')
         .select('count', { count: 'exact', head: true })
         .limit(1);
 
+      console.log('🗄️ Table query result:', { hasData: data !== null, error: error?.message, errorCode: error?.code });
+
       if (error) {
-        console.error('❌ Supabase test failed:', error);
-        return { success: false, error: error.message };
+        if (error.code === '42P01') {
+          return { 
+            success: false, 
+            error: 'Database tables not found. Please run migrations in Supabase Dashboard → SQL Editor.' 
+          };
+        }
+        
+        return { 
+          success: false, 
+          error: `Database error: ${error.message}` 
+        };
       }
 
       console.log('✅ Supabase connection successful');
@@ -471,6 +499,14 @@ class DirectSupabaseService {
 
     } catch (error) {
       console.error('❌ Connection test error:', error);
+      
+      if (error instanceof TypeError && error.message.includes('Failed to fetch')) {
+        return { 
+          success: false, 
+          error: 'Network error: Cannot reach Supabase. Check URL and internet connection.' 
+        };
+      }
+      
       return { 
         success: false, 
         error: error instanceof Error ? error.message : 'Unknown error' 

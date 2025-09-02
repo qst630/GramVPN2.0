@@ -81,7 +81,7 @@ export const DebugPanel: React.FC<DebugPanelProps> = ({ user, onRefresh }) => {
   const testConnection = async () => {
     setLoading(true);
     try {
-      addLog('🧪 TESTING DIRECT SUPABASE CONNECTION...');
+      addLog('🧪 COMPREHENSIVE SUPABASE TEST...');
       
       // Check environment first
       const url = import.meta.env.VITE_SUPABASE_URL;
@@ -96,20 +96,77 @@ export const DebugPanel: React.FC<DebugPanelProps> = ({ user, onRefresh }) => {
       addLog(`🔗 Supabase URL: ${url}`);
       addLog(`🔑 API Key: ${key.substring(0, 20)}...`);
       
+      // Test 1: Basic connectivity
+      addLog('📡 Step 1: Testing basic connectivity...');
+      try {
+        const basicResponse = await fetch(url, { method: 'HEAD' });
+        addLog(`📡 Basic connectivity: ${basicResponse.ok ? '✅ OK' : '❌ Failed'} (${basicResponse.status})`);
+      } catch (basicError) {
+        addLog(`❌ Basic connectivity failed: ${basicError.message}`);
+        addLog('💡 Check if Supabase project exists and is not paused');
+        return;
+      }
+      
+      // Test 2: API endpoint with auth
+      addLog('🔐 Step 2: Testing API with authentication...');
+      try {
+        const authResponse = await fetch(`${url}/rest/v1/`, {
+          method: 'HEAD',
+          headers: {
+            'apikey': key,
+            'Authorization': `Bearer ${key}`
+          }
+        });
+        addLog(`🔐 API Auth: ${authResponse.ok ? '✅ OK' : '❌ Failed'} (${authResponse.status})`);
+        
+        if (!authResponse.ok) {
+          addLog('💡 Check your API key in Supabase Dashboard → Settings → API');
+          return;
+        }
+      } catch (authError) {
+        addLog(`❌ API auth failed: ${authError.message}`);
+        return;
+      }
+      
       // Test direct Supabase connection
+      addLog('🗄️ Step 3: Testing database tables...');
       const result = await directSupabaseService.testConnection();
       
       if (result.success) {
-        addLog('✅ DIRECT SUPABASE CONNECTION SUCCESSFUL');
-        addLog('💡 No Edge Functions needed - using direct REST API');
+        addLog('✅ DATABASE CONNECTION SUCCESSFUL');
+        addLog('✅ All tables exist and accessible');
+        addLog('💡 Ready to use - no Edge Functions needed!');
       } else {
-        addLog(`❌ CONNECTION FAILED: ${result.error}`);
-        addLog('💡 Check your Supabase configuration');
-        addLog('💡 Make sure database tables exist (run migrations)');
+        addLog(`❌ DATABASE ERROR: ${result.error}`);
+        
+        if (result.error?.includes('tables not found')) {
+          addLog('');
+          addLog('🔧 SOLUTION: Create database tables');
+          addLog('1. Go to Supabase Dashboard → SQL Editor');
+          addLog('2. Run this SQL to create tables:');
+          addLog('');
+          addLog('CREATE TABLE users (');
+          addLog('  id SERIAL PRIMARY KEY,');
+          addLog('  telegram_id BIGINT UNIQUE NOT NULL,');
+          addLog('  username TEXT,');
+          addLog('  full_name TEXT,');
+          addLog('  referral_code TEXT UNIQUE NOT NULL,');
+          addLog('  referred_by INTEGER REFERENCES users(id),');
+          addLog('  subscription_status BOOLEAN DEFAULT FALSE,');
+          addLog('  subscription_link TEXT,');
+          addLog('  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP');
+          addLog(');');
+          addLog('');
+          addLog('-- Enable RLS');
+          addLog('ALTER TABLE users ENABLE ROW LEVEL SECURITY;');
+          addLog('');
+          addLog('-- Allow public access for demo');
+          addLog('CREATE POLICY "Allow all" ON users FOR ALL USING (true);');
+        }
       }
       
     } catch (error) {
-      addLog(`❌ CONNECTION TEST ERROR: ${error}`);
+      addLog(`❌ UNEXPECTED ERROR: ${error}`);
     } finally {
       setLoading(false);
     }
@@ -408,16 +465,21 @@ export const DebugPanel: React.FC<DebugPanelProps> = ({ user, onRefresh }) => {
           <button 
             className="debug-button"
             onClick={() => {
-              addLog('📋 DIRECT SUPABASE MODE:');
-              addLog('✅ No Edge Functions needed');
-              addLog('✅ Direct REST API calls to Supabase');
-              addLog('✅ Works immediately after DB setup');
-              addLog('💡 Just run migrations in Supabase Dashboard');
+              addLog('📋 QUICK SETUP GUIDE:');
+              addLog('');
+              addLog('1. ✅ Supabase project created');
+              addLog('2. ✅ Environment variables configured');
+              addLog('3. ❌ Database tables missing');
+              addLog('');
+              addLog('🔧 TO FIX: Go to Supabase Dashboard → SQL Editor');
+              addLog('📝 Copy-paste the SQL from "Test Connection" results');
+              addLog('▶️ Run the SQL to create tables');
+              addLog('🎉 Then test connection again!');
             }}
             disabled={loading}
           >
             <Settings size={14} />
-            Show Direct Mode Info
+            Quick Setup Guide
           </button>
         </div>
       </div>
