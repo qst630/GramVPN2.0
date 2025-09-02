@@ -1,18 +1,23 @@
 import React from 'react';
+import { useState } from 'react';
 import { ArrowLeft, User, Calendar, Crown, Gift, Copy } from 'lucide-react';
-import { User as UserType, FreeTrialStatus } from '../types/user';
+import { User as UserType } from '../types/vpn';
 
 interface ProfileScreenProps {
   onBack: () => void;
   user: UserType | null;
-  freeTrialStatus: FreeTrialStatus | null;
+  subscriptionType: string | null;
+  daysRemaining: number;
+  hasActiveSubscription: boolean;
   telegramUser: any;
 }
 
 export const ProfileScreen: React.FC<ProfileScreenProps> = ({ 
   onBack, 
   user, 
-  freeTrialStatus,
+  subscriptionType,
+  daysRemaining,
+  hasActiveSubscription,
   telegramUser 
 }) => {
   const [copied, setCopied] = useState(false);
@@ -53,21 +58,21 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({
   };
 
   const getSubscriptionStatus = () => {
-    if (freeTrialStatus?.active) {
+    if (subscriptionType === 'trial' && hasActiveSubscription) {
       return {
         status: 'Пробный период',
         color: '#10b981',
         icon: Gift,
-        details: `Осталось ${freeTrialStatus.days_remaining} дн.`
+        details: `Осталось ${daysRemaining} дн.`
       };
     }
     
-    if (user?.subscription_active) {
+    if (hasActiveSubscription) {
       return {
         status: 'Активная подписка',
         color: '#6366f1',
         icon: Crown,
-        details: `До ${formatDate(user.subscription_expires_at)}`
+        details: `Осталось ${daysRemaining} дн.`
       };
     }
 
@@ -126,13 +131,13 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({
             </div>
           </div>
 
-          {freeTrialStatus?.used && (
+          {subscriptionType && (
             <div className="stat-card">
               <Gift size={20} />
               <div>
                 <span className="stat-label">Пробный период</span>
                 <span className="stat-value">
-                  {freeTrialStatus.active ? 'Активен' : 'Использован'}
+                  {subscriptionType === 'trial' ? 'Активен' : 'Использован'}
                 </span>
               </div>
             </div>
