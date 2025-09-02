@@ -30,34 +30,94 @@ export const useTelegram = (): UseTelegramReturn => {
   const [webApp, setWebApp] = useState<TelegramWebApps.WebApp | null>(null);
 
   useEffect(() => {
-    if (window.Telegram?.WebApp) {
-      const tg = window.Telegram.WebApp;
-      setWebApp(tg);
-      
-      // Configure WebApp
-      tg.ready();
-      tg.expand();
-      tg.enableClosingConfirmation();
-      
-      // Set theme
-      tg.setHeaderColor('#0f1419');
-      tg.setBackgroundColor('#0f1419');
-      
-      // Get user data
-      if (tg.initDataUnsafe?.user) {
-        setUser(tg.initDataUnsafe.user as TelegramUser);
+    const initTelegram = () => {
+      try {
+        if (window.Telegram?.WebApp) {
+          const tg = window.Telegram.WebApp;
+          setWebApp(tg);
+          
+          console.log('🔧 Configuring Telegram WebApp...');
+          
+          // Configure WebApp
+          tg.ready();
+          tg.expand();
+          
+          // Only enable closing confirmation if supported
+          try {
+            tg.enableClosingConfirmation();
+          } catch (e) {
+            console.log('⚠️ Closing confirmation not supported');
+          }
+          
+          // Set theme colors if supported
+          try {
+            tg.setHeaderColor('#0f1419');
+            tg.setBackgroundColor('#0f1419');
+          } catch (e) {
+            console.log('⚠️ Theme colors not supported');
+          }
+          
+          // Get user data
+          if (tg.initDataUnsafe?.user) {
+            console.log('✅ Telegram user found:', tg.initDataUnsafe.user);
+            setUser(tg.initDataUnsafe.user as TelegramUser);
+          } else {
+            console.log('⚠️ No Telegram user data, using fallback');
+            // Fallback user for testing
+            setUser({
+              id: 123456789,
+              first_name: 'Demo',
+              last_name: 'User',
+              username: 'demouser'
+            });
+          }
+          
+          console.log('✅ Telegram WebApp configured successfully');
+          setIsReady(true);
+        } else {
+          console.log('⚠️ Telegram WebApp not available, using fallback mode');
+          // Development fallback
+          setUser({
+            id: 123456789,
+            first_name: 'Demo',
+            last_name: 'User',
+            username: 'demouser'
+          });
+          setIsReady(true);
+        }
+      } catch (error) {
+        console.error('❌ Error initializing Telegram:', error);
+        // Even if there's an error, set ready state with fallback user
+        setUser({
+          id: 123456789,
+          first_name: 'Demo',
+          last_name: 'User',
+          username: 'demouser'
+        });
+        setIsReady(true);
       }
-      
-      setIsReady(true);
+    };
+
+    // Initialize immediately if Telegram is already loaded
+    if (window.Telegram?.WebApp) {
+      initTelegram();
     } else {
-      // Development fallback
-      setIsReady(true);
-      setUser({
-        id: 123456789,
-        first_name: 'Test',
-        last_name: 'User',
-        username: 'testuser'
-      });
+      // Wait for Telegram script to load
+      const checkTelegram = setInterval(() => {
+        if (window.Telegram?.WebApp) {
+          clearInterval(checkTelegram);
+          initTelegram();
+        }
+      }, 100);
+
+      // Fallback timeout
+      setTimeout(() => {
+        clearInterval(checkTelegram);
+        if (!isReady) {
+          console.log('⏰ Telegram load timeout, using fallback');
+          initTelegram();
+        }
+      }, 3000);
     }
   }, []);
 

@@ -13,6 +13,7 @@ import { ConnectionStatus } from './components/ConnectionStatus';
 
 function App() {
   const [activeScreen, setActiveScreen] = useState<Screen>('main');
+  const [appReady, setAppReady] = useState(false);
   const { user: telegramUser, showAlert, hapticFeedback, isReady } = useTelegram();
   
   // Get referral code from URL if present
@@ -34,9 +35,17 @@ function App() {
     refreshUser
   } = useVPN(telegramUser, referralCode || undefined);
 
+  // Initialize app when Telegram is ready
+  useEffect(() => {
+    if (isReady) {
+      console.log('🚀 Telegram WebApp ready, initializing app...');
+      setAppReady(true);
+    }
+  }, [isReady]);
+
   // Determine initial screen based on user status
   useEffect(() => {
-    if (user && !loading) {
+    if (appReady && user && !loading) {
       // Show main screen if user has active subscription or has used trial
       if (hasActiveSubscription || subscriptionType) {
         setActiveScreen('main');
@@ -45,7 +54,7 @@ function App() {
         setActiveScreen('main');
       }
     }
-  }, [user, hasActiveSubscription, subscriptionType, loading]);
+  }, [appReady, user, hasActiveSubscription, subscriptionType, loading]);
 
   useEffect(() => {
     // Set page title
@@ -93,8 +102,38 @@ function App() {
     setActiveScreen(screen);
   };
 
-  // Show error state if there's a critical error
-  if (error) {
+  // Show loading state while initializing
+  if (!appReady) {
+    return (
+      <div className="app-container">
+        <div className="screen active" style={{ 
+          display: 'flex', 
+          alignItems: 'center', 
+          justifyContent: 'center',
+          flexDirection: 'column',
+          gap: '16px'
+        }}>
+          <div className="logo">
+            <svg width="48" height="48" viewBox="0 0 48 48" fill="none">
+              <circle cx="24" cy="24" r="22" stroke="url(#grad1)" strokeWidth="2"/>
+              <path d="M16 20 L24 28 L32 20" stroke="url(#grad1)" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"/>
+              <defs>
+                <linearGradient id="grad1" x1="0%" y1="0%" x2="100%" y2="100%">
+                  <stop offset="0%" style={{stopColor:'#667eea'}}/>
+                  <stop offset="100%" style={{stopColor:'#764ba2'}}/>
+                </linearGradient>
+              </defs>
+            </svg>
+          </div>
+          <div style={{ color: '#ffffff', fontSize: '18px', fontWeight: '600' }}>GramVPN</div>
+          <div style={{ color: '#94a3b8', fontSize: '14px' }}>Инициализация...</div>
+        </div>
+      </div>
+    );
+  }
+
+  // Show error state if there's a critical error (but only after app is ready)
+  if (appReady && error && !loading) {
     return (
       <div className="app-container">
         <div className="screen active" style={{ 
@@ -159,15 +198,31 @@ function App() {
     );
   }
 
-  if (!isReady || loading) {
+  // Show loading state while data is loading
+  if (loading && appReady) {
     return (
       <div className="app-container">
         <div className="screen active" style={{ 
           display: 'flex', 
           alignItems: 'center', 
-          justifyContent: 'center' 
+          justifyContent: 'center',
+          flexDirection: 'column',
+          gap: '16px'
         }}>
-          <div>{!isReady ? 'Инициализация...' : 'Загрузка данных...'}</div>
+          <div className="logo">
+            <svg width="48" height="48" viewBox="0 0 48 48" fill="none">
+              <circle cx="24" cy="24" r="22" stroke="url(#grad1)" strokeWidth="2"/>
+              <path d="M16 20 L24 28 L32 20" stroke="url(#grad1)" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"/>
+              <defs>
+                <linearGradient id="grad1" x1="0%" y1="0%" x2="100%" y2="100%">
+                  <stop offset="0%" style={{stopColor:'#667eea'}}/>
+                  <stop offset="100%" style={{stopColor:'#764ba2'}}/>
+                </linearGradient>
+              </defs>
+            </svg>
+          </div>
+          <div style={{ color: '#ffffff', fontSize: '18px', fontWeight: '600' }}>GramVPN</div>
+          <div style={{ color: '#94a3b8', fontSize: '14px' }}>Загрузка данных...</div>
         </div>
       </div>
     );

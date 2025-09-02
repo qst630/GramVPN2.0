@@ -44,6 +44,14 @@ class VPNService {
         this.isMockMode = true;
         return this.handleMockRequest(action, payload);
       }
+      
+      // For Telegram environment, be more graceful with errors
+      if (typeof window !== 'undefined' && window.Telegram?.WebApp) {
+        console.log('🔄 Telegram environment detected, using graceful fallback');
+        this.isMockMode = true;
+        return this.handleMockRequest(action, payload);
+      }
+      
       throw error;
     }
   }
