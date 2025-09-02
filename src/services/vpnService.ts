@@ -7,21 +7,29 @@ class VPNService {
   private mockUsers: Map<number, User> = new Map();
 
   constructor() {
-    this.isMockMode = !import.meta.env.VITE_SUPABASE_URL || !import.meta.env.VITE_SUPABASE_ANON_KEY;
+    // Only use mock mode if explicitly no environment variables
+    this.isMockMode = false; // Force real mode initially
     console.log('🔧 VPNService initialized:', {
-      mockMode: this.isMockMode,
+      mockMode: false,
       hasUrl: !!import.meta.env.VITE_SUPABASE_URL,
       hasKey: !!import.meta.env.VITE_SUPABASE_ANON_KEY,
-      mode: this.isMockMode ? '🧪 Mock Mode' : '🌐 Real VPN Service'
+      mode: '🌐 Real VPN Service (attempting)',
+      functionUrl: VPN_FUNCTION_URL
     });
   }
 
   private async callVPNFunction(action: string, payload: any): Promise<any> {
-    if (this.isMockMode) {
-      return this.handleMockRequest(action, payload);
-    }
+    console.log('🌐 Calling VPN Function:', action, 'URL:', VPN_FUNCTION_URL);
+    console.log('📡 Payload:', payload);
+    console.log('🔑 Has Auth Key:', !!import.meta.env.VITE_SUPABASE_ANON_KEY);
 
     try {
+      if (!import.meta.env.VITE_SUPABASE_URL || !import.meta.env.VITE_SUPABASE_ANON_KEY) {
+        console.log('❌ Missing environment variables, switching to mock mode');
+        this.isMockMode = true;
+        return this.handleMockRequest(action, payload);
+      }
+
       const response = await fetch(VPN_FUNCTION_URL, {
         method: 'POST',
         headers: {
@@ -31,23 +39,38 @@ class VPNService {
         body: JSON.stringify({ action, ...payload })
       });
 
+      console.log('📡 Response status:', response.status, response.statusText);
+      console.log('📡 Response headers:', Object.fromEntries(response.headers.entries()));
+
       if (!response.ok) {
-        const errorData = await response.json();
+        const responseText = await response.text();
+        console.log('📡 Error response body:', responseText);
+        
+        let errorData;
+        try {
+          errorData = JSON.parse(responseText);
+        } catch {
+          errorData = { error: responseText || `HTTP ${response.status}` };
+        }
+        
         throw new Error(errorData.error || 'VPN service error');
       }
 
-      return await response.json();
+      const result = await response.json();
+      console.log('✅ VPN Function response:', result);
+      return result;
     } catch (error) {
       console.error('VPN service error:', error);
+      
       if (error instanceof TypeError && error.message.includes('Failed to fetch')) {
-        console.log('🚨 VPN Function not available, falling back to mock mode');
+        console.log('🚨 Network error - VPN Function not reachable, falling back to mock mode');
         this.isMockMode = true;
         return this.handleMockRequest(action, payload);
       }
       
-      // For Telegram environment, be more graceful with errors
-      if (typeof window !== 'undefined' && window.Telegram?.WebApp) {
-        console.log('🔄 Telegram environment detected, using graceful fallback');
+      // Check if it's a 404 (function not deployed)
+      if (error.message.includes('404') || error.message.includes('Not Found')) {
+        console.log('🚨 VPN Function not deployed (404), falling back to mock mode');
         this.isMockMode = true;
         return this.handleMockRequest(action, payload);
       }

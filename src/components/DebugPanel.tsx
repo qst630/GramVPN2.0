@@ -27,12 +27,15 @@ export const DebugPanel: React.FC<DebugPanelProps> = ({ user, onRefresh }) => {
         username: 'testuser'
       };
       
-      addLog(`Creating test user: ${testUser.first_name} (ID: ${testUser.id})`);
-      const result = await userService.createUser(testUser);
-      addLog(`✅ User created successfully: ${result.referral_code}`);
+      addLog(`Creating test VPN user: ${testUser.first_name} (ID: ${testUser.id})`);
+      
+      // Import vpnService instead of userService
+      const { vpnService } = await import('../services/vpnService');
+      const result = await vpnService.getOrCreateUser(testUser);
+      addLog(`✅ VPN User created successfully: ${result.referral_code}`);
       onRefresh();
     } catch (error) {
-      addLog(`❌ Error creating user: ${error instanceof Error ? error.message : error}`);
+      addLog(`❌ Error creating VPN user: ${error instanceof Error ? error.message : error}`);
       if (error instanceof Error && error.message.includes('Database error:')) {
         addLog(`💡 This might be a database schema issue. Check if migrations are applied.`);
       }
@@ -81,64 +84,44 @@ export const DebugPanel: React.FC<DebugPanelProps> = ({ user, onRefresh }) => {
   const testConnection = async () => {
     setLoading(true);
     try {
-      addLog('🧪 Starting comprehensive connection test...');
+      addLog('🧪 Testing VPN Function connection...');
       
-      // Test Edge Function availability
-      addLog('🔌 Testing Edge Function availability...');
-      const edgeFunctionUrl = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/user-management`;
-      addLog(`🔗 Edge Function URL: ${edgeFunctionUrl}`);
+      // Test VPN Function availability
+      addLog('🔌 Testing VPN Function availability...');
+      const vpnFunctionUrl = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/vpn-management`;
+      addLog(`🔗 VPN Function URL: ${vpnFunctionUrl}`);
       
       try {
-        const edgeResponse = await fetch(edgeFunctionUrl, {
+        const vpnResponse = await fetch(vpnFunctionUrl, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
             'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}`,
           },
-          body: JSON.stringify({ action: 'test' })
+          body: JSON.stringify({ action: 'get_user_status', telegram_id: 123456789 })
         });
         
-        addLog(`🔌 Edge Function status: ${edgeResponse.status} ${edgeResponse.statusText}`);
+        addLog(`🔌 VPN Function status: ${vpnResponse.status} ${vpnResponse.statusText}`);
         
-        if (edgeResponse.status === 404) {
-          addLog('❌ EDGE FUNCTION NOT DEPLOYED');
-          addLog('💡 SOLUTION: Edge Function needs to be deployed to Supabase');
-          addLog('💡 Go to Supabase Dashboard → Edge Functions → Deploy user-management function');
-        } else if (edgeResponse.status >= 400) {
-          const errorText = await edgeResponse.text();
-          addLog(`⚠️ Edge Function error: ${errorText}`);
+        if (vpnResponse.status === 404) {
+          addLog('❌ VPN FUNCTION NOT DEPLOYED');
+          addLog('💡 SOLUTION: VPN Function needs to be deployed to Supabase');
+          addLog('💡 Go to Supabase Dashboard → Edge Functions → Deploy vpn-management function');
+        } else if (vpnResponse.status >= 400) {
+          const errorText = await vpnResponse.text();
+          addLog(`⚠️ VPN Function error: ${errorText}`);
         } else {
-          addLog('✅ Edge Function is available');
+          addLog('✅ VPN Function is available');
+          const responseData = await vpnResponse.json();
+          addLog(`📊 Response data: ${JSON.stringify(responseData, null, 2)}`);
         }
-      } catch (edgeError) {
-        addLog(`❌ Edge Function test failed: ${edgeError}`);
-        if (edgeError instanceof TypeError && edgeError.message.includes('Failed to fetch')) {
-          addLog('💡 This suggests Edge Functions are not available or not deployed');
+      } catch (vpnError) {
+        addLog(`❌ VPN Function test failed: ${vpnError}`);
+        if (vpnError instanceof TypeError && vpnError.message.includes('Failed to fetch')) {
+          addLog('💡 This suggests VPN Functions are not available or not deployed');
         }
       }
       
-      // Test with retry
-      const result = await testSupabaseConnection();
-      
-      if (result.success) {
-        addLog('✅ CONNECTION SUCCESS: Supabase is working perfectly!');
-      } else {
-        addLog(`❌ CONNECTION FAILED: ${result.error}`);
-        if (result.details) {
-          addLog(`🔍 Error details: ${JSON.stringify(result.details, null, 2)}`);
-        }
-        
-        // Provide specific solutions
-        if (result.error?.includes('Failed to fetch')) {
-          addLog('💡 SOLUTION: Check your Supabase URL and internet connection');
-          addLog('💡 TIP: Make sure URL starts with https:// and ends with .supabase.co');
-        } else if (result.error?.includes('Invalid API key')) {
-          addLog('💡 SOLUTION: Check your API key in Supabase Dashboard → Settings → API');
-          addLog('💡 TIP: Use the "anon public" key, not the "service_role" key');
-        } else if (result.error?.includes('tables not created')) {
-          addLog('💡 SOLUTION: Run database migrations in Supabase Dashboard → SQL Editor');
-        }
-      }
     } catch (error) {
       addLog(`❌ UNEXPECTED ERROR: ${error}`);
     } finally {

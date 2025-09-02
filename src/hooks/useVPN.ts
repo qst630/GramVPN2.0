@@ -44,7 +44,8 @@ export const useVPN = (telegramUser: any, referralCode?: string): UseVPNReturn =
       setError(null);
       
       // Get or create user
-      console.log('🔍 Getting or creating user...');
+      console.log('🔍 Getting or creating user for Telegram ID:', telegramUser.id);
+      console.log('🎫 Using referral code:', referralCode || 'None');
       const userData = await vpnService.getOrCreateUser(telegramUser, referralCode);
       console.log('✅ User data:', userData);
       setUser(userData);
