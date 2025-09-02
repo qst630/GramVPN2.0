@@ -267,18 +267,8 @@ export const SubscriptionScreen: React.FC<SubscriptionScreenProps> = ({
         )}
       </button>
 
-      <div className="stats-section">
-        <div className="stats-title">Приведи друзей и получи бонусы!</div>
-        <div className="stats-grid">
-          <div className="stat-item">
-            <div className="stat-number">{referralStats.invited}</div>
-            <div className="stat-label">приглашено</div>
-          </div>
-          <div className="stat-item">
-            <div className="stat-number">{referralStats.daysEarned}</div>
-            <div className="stat-label">дней получено</div>
-          </div>
-        </div>
+      <div className="referral-section">
+        <div className="referral-title">Приведи друзей и получи бонусы!</div>
       </div>
 
       <div className="referral-code">

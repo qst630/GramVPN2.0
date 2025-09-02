@@ -1699,3 +1699,14 @@ body {
 .status-error {
   color: #ef4444;
 }
+
+/* Referral section styles */
+.referral-section {
+  margin: 20px 0 10px 0;
+  text-align: center;
+}
+
+.referral-title {
+  font-size: 16px;
+  color: #94a3b8;
+}
