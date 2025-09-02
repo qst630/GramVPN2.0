@@ -237,6 +237,8 @@ export const SubscriptionScreen: React.FC<SubscriptionScreenProps> = ({
                 {plan.price === 0 && (
                   <span className="free-badge">
                     БЕСПЛАТНО
+                  </span>
+                )}
                 {plan.monthlyPrice && (
                   <span className="plan-monthly">
                     {plan.price === 0 ? 'Бесплатно' : `${plan.monthlyPrice} ₽/мес`}
