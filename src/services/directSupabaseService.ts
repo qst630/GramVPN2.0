@@ -764,6 +764,36 @@ class DirectSupabaseService {
         is_one_time: false,
         usage_count: 0,
         created_at: new Date().toISOString()
+      },
+      'FREE30': {
+        id: 6,
+        code: 'FREE30',
+        discount_percent: 100,
+        valid_for: '30days', // Free 30-day plan
+        is_active: true,
+        is_one_time: true,
+        usage_count: 0,
+        created_at: new Date().toISOString()
+      },
+      'FREEALL': {
+        id: 7,
+        code: 'FREEALL',
+        discount_percent: 100,
+        valid_for: 'all', // Free for all plans
+        is_active: true,
+        is_one_time: false,
+        usage_count: 0,
+        created_at: new Date().toISOString()
+      },
+      'FREELONG': {
+        id: 8,
+        code: 'FREELONG',
+        discount_percent: 100,
+        valid_for: '90days,365days', // Free for long-term plans
+        is_active: true,
+        is_one_time: true,
+        usage_count: 0,
+        created_at: new Date().toISOString()
       }
     };
     
