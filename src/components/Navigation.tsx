@@ -1,7 +1,7 @@
 import React from 'react';
-import { Home, Layers, Users, HelpCircle, User } from 'lucide-react';
+import { Home, Layers, Users, HelpCircle, User, Gift } from 'lucide-react';
 
-export type Screen = 'welcome' | 'subscription' | 'support' | 'profile';
+export type Screen = 'main' | 'subscription' | 'support' | 'profile' | 'referrals';
 
 interface NavigationProps {
   activeScreen: Screen;
@@ -15,9 +15,10 @@ interface NavItem {
 }
 
 const navItems: NavItem[] = [
-  { id: 'profile', icon: User, label: 'Профиль' },
+  { id: 'main', icon: Home, label: 'Главная' },
   { id: 'subscription', icon: Layers, label: 'Тарифы' },
-  { id: 'welcome', icon: Home, label: 'Главная' },
+  { id: 'profile', icon: User, label: 'Профиль' },
+  { id: 'referrals', icon: Gift, label: 'Рефералы' },
   { id: 'support', icon: HelpCircle, label: 'Поддержка' },
 ];
 

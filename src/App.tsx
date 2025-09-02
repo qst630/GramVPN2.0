@@ -3,66 +3,71 @@ import { WelcomeScreen } from './screens/WelcomeScreen';
 import { SubscriptionScreen } from './screens/SubscriptionScreen';
 import { SupportScreen } from './screens/SupportScreen';
 import { ProfileScreen } from './screens/ProfileScreen';
+import { ReferralScreen } from './screens/ReferralScreen';
 import { MainScreen } from './screens/MainScreen';
 import { Navigation, Screen } from './components/Navigation';
 import { useTelegram } from './hooks/useTelegram';
-import { useUser } from './hooks/useUser';
+import { useVPN } from './hooks/useVPN';
 import { DebugPanel } from './components/DebugPanel';
 import { ConnectionStatus } from './components/ConnectionStatus';
 
 function App() {
-  const [activeScreen, setActiveScreen] = useState<Screen>('welcome');
+  const [activeScreen, setActiveScreen] = useState<Screen>('main');
   const { user: telegramUser, showAlert, hapticFeedback, isReady } = useTelegram();
+  
+  // Get referral code from URL if present
+  const urlParams = new URLSearchParams(window.location.search);
+  const referralCode = urlParams.get('ref');
+  
   const { 
-    user: userData, 
-    freeTrialStatus, 
-    loading: userLoading, 
-    error: userError,
-    startFreeTrial,
-    refreshUser,
-    referralStats 
-  } = useUser(telegramUser);
+    user,
+    subscriptionType,
+    daysRemaining,
+    hasActiveSubscription,
+    referralStats,
+    subscriptionPlans,
+    loading,
+    error,
+    startTrial,
+    createSubscription,
+    validatePromoCode,
+    refreshUser
+  } = useVPN(telegramUser, referralCode || undefined);
 
   // Determine initial screen based on user status
   useEffect(() => {
-    if (userData && freeTrialStatus) {
-      // If user exists in database (has subscription or used trial), show main screen
-      if (userData.subscription_active || freeTrialStatus.used) {
-        setActiveScreen('welcome'); // Main screen shows VPN status
+    if (user && !loading) {
+      // Show main screen if user has active subscription or has used trial
+      if (hasActiveSubscription || subscriptionType) {
+        setActiveScreen('main');
       } else {
-        // New user - show welcome with trial offer
-        setActiveScreen('welcome');
+        // New user - show welcome screen
+        setActiveScreen('main');
       }
-    } else if (userData === null && !userLoading) {
-      // User not found in database - show welcome screen
-      setActiveScreen('welcome');
     }
-  }, [userData, freeTrialStatus]);
+  }, [user, hasActiveSubscription, subscriptionType, loading]);
 
   useEffect(() => {
     // Set page title
     document.title = 'GramVPN - Безопасный и быстрый VPN';
   }, []);
 
-  const handleStartTrial = async () => {
+  const handleStartTrial = async (): Promise<void> => {
     hapticFeedback.medium();
     
-    if (!freeTrialStatus?.available) {
-      if (freeTrialStatus?.used) {
-        showAlert('Пробный период уже был использован. Оформите подписку для продолжения использования.');
-        setActiveScreen('subscription');
-      }
+    if (hasActiveSubscription) {
+      showAlert('У вас уже есть активная подписка!');
       return;
     }
 
     try {
-      await startFreeTrial();
+      await startTrial();
       showAlert(
-        '🎉 Поздравляем! Ваши 3 дня бесплатного доступа активированы!\n\nВы можете начать использовать GramVPN прямо сейчас.'
+        '🎉 Поздравляем! Ваш 3-дневный пробный период активирован!\n\nВы можете начать использовать GramVPN прямо сейчас.'
       );
-      setActiveScreen('subscription');
+      setActiveScreen('main');
     } catch (error) {
-      showAlert('Произошла ошибка при активации пробного периода. Попробуйте позже.');
+      showAlert(`Произошла ошибка: ${error instanceof Error ? error.message : 'Попробуйте позже'}`);
     }
   };
 
@@ -71,9 +76,16 @@ function App() {
     setActiveScreen('subscription');
   };
 
-  const handleShowPayment = () => {
+  const handleShowPayment = async (planType: string, promoCode?: string) => {
     hapticFeedback.medium();
-    showAlert('Перенаправление на оплату...');
+    
+    try {
+      await createSubscription(planType, promoCode);
+      showAlert('🎉 Подписка успешно оформлена! Добро пожаловать в GramVPN!');
+      setActiveScreen('main');
+    } catch (error) {
+      showAlert(`Ошибка оформления подписки: ${error instanceof Error ? error.message : 'Попробуйте позже'}`);
+    }
   };
 
   const handleScreenChange = (screen: Screen) => {
@@ -81,11 +93,8 @@ function App() {
     setActiveScreen(screen);
   };
 
-  // Check if user exists in database
-  const userExists = userData !== null;
-
   // Show error state if there's a critical error
-  if (userError) {
+  if (error) {
     return (
       <div className="app-container">
         <div className="screen active" style={{ 
@@ -117,7 +126,7 @@ function App() {
               color: '#ef4444',
               textAlign: 'left'
             }}>
-              {userError}
+              {error}
             </div>
             <p style={{ color: '#94a3b8', marginBottom: '20px', fontSize: '14px', lineHeight: '1.5' }}>
               {!import.meta.env.VITE_SUPABASE_URL 
@@ -136,7 +145,7 @@ function App() {
               <button 
                 className="secondary-button" 
                 onClick={() => {
-                  setActiveScreen('welcome');
+                  setActiveScreen('main');
                   window.location.reload();
                 }}
                 style={{ margin: 0 }}
@@ -150,7 +159,7 @@ function App() {
     );
   }
 
-  if (!isReady || userLoading) {
+  if (!isReady || loading) {
     return (
       <div className="app-container">
         <div className="screen active" style={{ 
@@ -166,44 +175,56 @@ function App() {
 
   return (
     <div className="app-container">
-      {activeScreen === 'welcome' && (
-        userData && (freeTrialStatus?.used || userData.subscription_active) ? (
+      {activeScreen === 'main' && (
+        hasActiveSubscription ? (
           <MainScreen
-            user={userData}
-            freeTrialStatus={freeTrialStatus}
+            user={user}
+            subscriptionType={subscriptionType}
+            daysRemaining={daysRemaining}
             onShowSubscription={handleShowSubscription}
           />
         ) : (
           <WelcomeScreen
             onStartTrial={handleStartTrial}
             onShowSubscription={handleShowSubscription}
-            freeTrialStatus={freeTrialStatus}
-            user={userData}
-            userExists={userExists}
-            loading={userLoading}
+            user={user}
+            hasActiveSubscription={hasActiveSubscription}
+            loading={loading}
           />
         )
       )}
 
       {activeScreen === 'subscription' && (
         <SubscriptionScreen
+          subscriptionPlans={subscriptionPlans}
           onShowPayment={handleShowPayment}
-          user={userData}
+          onValidatePromoCode={validatePromoCode}
+          user={user}
           referralStats={referralStats}
         />
       )}
 
       {activeScreen === 'support' && (
         <SupportScreen
-          onBack={() => setActiveScreen('profile')}
+          onBack={() => setActiveScreen('main')}
+        />
+      )}
+
+      {activeScreen === 'referrals' && (
+        <ReferralScreen
+          onBack={() => setActiveScreen('main')}
+          user={user}
+          referralStats={referralStats}
         />
       )}
 
       {activeScreen === 'profile' && (
         <ProfileScreen
-          onBack={() => setActiveScreen('profile')}
-          user={userData}
-          freeTrialStatus={freeTrialStatus}
+          onBack={() => setActiveScreen('main')}
+          user={user}
+          subscriptionType={subscriptionType}
+          daysRemaining={daysRemaining}
+          hasActiveSubscription={hasActiveSubscription}
           telegramUser={telegramUser}
         />
       )}
@@ -216,7 +237,7 @@ function App() {
 
       {/* Debug Panel for testing */}
       <DebugPanel 
-        user={userData} 
+        user={user} 
         onRefresh={refreshUser}
       />
 
@@ -236,8 +257,8 @@ function App() {
 
       {/* Environment indicator */}
       <ConnectionStatus 
-        isConnected={!!import.meta.env.VITE_SUPABASE_URL && !!import.meta.env.VITE_SUPABASE_ANON_KEY && !userError}
-        error={userError}
+        isConnected={!!import.meta.env.VITE_SUPABASE_URL && !!import.meta.env.VITE_SUPABASE_ANON_KEY && !error}
+        error={error}
       />
     </div>
   );
