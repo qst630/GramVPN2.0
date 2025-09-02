@@ -227,7 +227,7 @@ export const SubscriptionScreen: React.FC<SubscriptionScreenProps> = ({
                   <span className="plan-name">
                     {plan.title} - 
                     {plan.hasDiscount && getDiscountPercent(plan.id) === 100 ? (
-                      <span className="free-price"> Бесплатно</span>
+                      <span> </span>
                     ) : plan.hasDiscount && plan.price > 0 ? (
                       <>
                         <span className="original-price">{plan.originalPrice} ₽</span>
