@@ -148,13 +148,37 @@ export const useVPN = (telegramUser: any, referralCode?: string): UseVPNReturn =
       throw new Error('No telegram user');
     }
 
+    console.log('🎯 useVPN.startTrial called for user:', telegramUser.id);
+
     setIsCreatingSubscription(true);
     try {
       setError(null);
       console.log('🎯 Starting trial...');
       
-      const result = await subscriptionService.startFreeTrial(telegramUser.id);
+      // Check if Supabase is configured
+      if (!import.meta.env.VITE_SUPABASE_URL || !import.meta.env.VITE_SUPABASE_ANON_KEY) {
+        console.log('⚠️ Supabase not configured, using mock mode');
+        // Mock success for demo
+        await new Promise(resolve => setTimeout(resolve, 2000));
+        
+        // Update mock user
+        setUser(prev => prev ? {
+          ...prev,
+          subscription_status: true,
+          subscription_link: 'https://connect.gramvpn.shop/?key=v2raytun://import/https://connect.gramvpn.shop/subscription/' + telegramUser.id + '?expire=' + Math.floor((Date.now() + 3 * 24 * 60 * 60 * 1000) / 1000)
+        } : null);
+        
+        setSubscriptionType('trial');
+        setDaysRemaining(3);
+        setHasActiveSubscription(true);
+        
+        console.log('✅ Mock trial started successfully');
+        return;
+      }
       
+      const result = await subscriptionService.startFreeTrial(telegramUser.id);
+      console.log('📊 Trial result:', result);
+
       if (!result.success) {
         throw new Error(result.error || 'Failed to start trial');
       }
@@ -166,10 +190,15 @@ export const useVPN = (telegramUser: any, referralCode?: string): UseVPNReturn =
       
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Failed to start trial';
+      console.error('❌ Trial error details:', {
+        error: err,
+        message: errorMessage,
+        stack: err instanceof Error ? err.stack : 'No stack'
+      });
       setError(errorMessage);
-      console.error('Error starting trial:', err);
       throw new Error(errorMessage);
     } finally {
+      console.log('🏁 Trial process completed');
       setIsCreatingSubscription(false);
     }
   };

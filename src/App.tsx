@@ -65,22 +65,32 @@ function App() {
   const handleStartTrial = async (): Promise<void> => {
     hapticFeedback.medium();
     
+    if (isCreatingSubscription) {
+      return; // Prevent multiple clicks
+    }
+
+    console.log('🎯 Starting trial process...', {
+      user: !!user,
+      hasActiveSubscription,
+      subscriptionType,
+      loading
+    });
+
     if (hasActiveSubscription) {
       showAlert('У вас уже есть активная подписка!');
       return;
     }
 
-    if (isCreatingSubscription) {
-      return; // Prevent multiple clicks
-    }
-
     try {
+      console.log('🚀 Calling startTrial...');
       await startTrial();
+      console.log('✅ Trial started successfully');
       showAlert(
         '🎉 Поздравляем! Ваш 3-дневный пробный период активирован!\n\nСсылка для подключения создана. Нажмите "🚀 Подключить VPN" для настройки.'
       );
       setActiveScreen('main');
     } catch (error) {
+      console.error('❌ Trial start failed:', error);
       showAlert(`Произошла ошибка: ${error instanceof Error ? error.message : 'Попробуйте позже'}`);
     }
   };

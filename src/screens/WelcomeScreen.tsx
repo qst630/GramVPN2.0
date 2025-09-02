@@ -132,7 +132,16 @@ export const WelcomeScreen: React.FC<WelcomeScreenProps> = ({
         <div className="welcome-buttons">
           <button 
             className={`primary-button trial-button ${buttonContent.className} ${buttonContent.disabled ? 'disabled' : ''}`}
-            onClick={onStartTrial}
+            onClick={() => {
+              console.log('🔘 Trial button clicked', {
+                disabled: buttonContent.disabled,
+                loading,
+                className: buttonContent.className
+              });
+              if (!buttonContent.disabled && !loading) {
+                onStartTrial();
+              }
+            }}
             disabled={buttonContent.disabled || loading}
           >
             {loading ? (
