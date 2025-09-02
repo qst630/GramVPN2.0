@@ -218,11 +218,24 @@ export const DebugPanel: React.FC<DebugPanelProps> = ({ user, onRefresh }) => {
         addLog(`🌐 Домен доступен: ✅ (статус: ${basicResponse.status})`);
       } catch (domainError) {
         addLog(`❌ ОШИБКА ДОМЕНА: ${domainError.message}`);
-        addLog('💡 Возможные причины:');
-        addLog('   - Неправильный URL проекта');
-        addLog('   - Проект не существует или удален');
-        addLog('   - Проект приостановлен');
-        addLog('💡 Проверьте проект: https://supabase.com/dashboard');
+        addLog('');
+        addLog('🚨 КРИТИЧЕСКАЯ ПРОБЛЕМА: Ваш Supabase проект недоступен!');
+        addLog('');
+        addLog('📋 ВОЗМОЖНЫЕ ПРИЧИНЫ:');
+        addLog('1. 💤 Проект приостановлен (paused) - самая частая причина');
+        addLog('2. 🗑️ Проект удален');
+        addLog('3. 💳 Превышен лимит бесплатного плана');
+        addLog('4. 🌐 Проблемы с сетью');
+        addLog('');
+        addLog('🔧 КАК ИСПРАВИТЬ:');
+        addLog('1. Откройте: https://supabase.com/dashboard');
+        addLog('2. Найдите ваш проект в списке');
+        addLog('3. Если проект показан как "Paused" - нажмите "Resume"');
+        addLog('4. Если проекта нет - создайте новый проект');
+        addLog('5. Если проект активен - проверьте интернет соединение');
+        addLog('');
+        addLog('💡 БЫСТРОЕ РЕШЕНИЕ: Создать новый проект');
+        addLog('   → https://supabase.com/dashboard/new');
         return;
       }
       
@@ -442,35 +455,54 @@ export const DebugPanel: React.FC<DebugPanelProps> = ({ user, onRefresh }) => {
           <button 
             className="debug-button"
             onClick={() => {
-              addLog('🔧 СОЗДАНИЕ ТАБЛИЦ В SUPABASE...');
+              addLog('🚨 ВНИМАНИЕ: Сначала нужно исправить проект!');
               addLog('');
-              addLog('1. Откройте: https://supabase.com/dashboard');
-              addLog('2. Выберите ваш проект');
-              addLog('3. Перейдите в SQL Editor');
-              addLog('4. Выполните этот SQL:');
+              addLog('📋 ПОШАГОВОЕ РЕШЕНИЕ:');
               addLog('');
-              addLog('CREATE TABLE users (');
-              addLog('  id SERIAL PRIMARY KEY,');
-              addLog('  telegram_id BIGINT UNIQUE NOT NULL,');
-              addLog('  username TEXT,');
-              addLog('  full_name TEXT,');
-              addLog('  referral_code TEXT UNIQUE NOT NULL,');
-              addLog('  referred_by INTEGER REFERENCES users(id),');
-              addLog('  subscription_status BOOLEAN DEFAULT FALSE,');
-              addLog('  subscription_link TEXT,');
-              addLog('  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP');
-              addLog(');');
+              addLog('ШАГ 1: Проверьте статус проекта');
+              addLog('→ Откройте: https://supabase.com/dashboard');
+              addLog('→ Найдите проект: pcsiaybcqegidwpchumj');
               addLog('');
-              addLog('ALTER TABLE users ENABLE ROW LEVEL SECURITY;');
-              addLog('CREATE POLICY "Allow all" ON users FOR ALL USING (true);');
+              addLog('ШАГ 2А: Если проект "Paused" (приостановлен)');
+              addLog('→ Нажмите кнопку "Resume" или "Unpause"');
+              addLog('→ Подождите 1-2 минуты');
+              addLog('→ Вернитесь сюда и нажмите "Полная диагностика"');
               addLog('');
-              addLog('5. Нажмите RUN');
-              addLog('6. Вернитесь сюда и нажмите "Полная диагностика"');
+              addLog('ШАГ 2Б: Если проекта нет в списке');
+              addLog('→ Создайте новый: https://supabase.com/dashboard/new');
+              addLog('→ Скопируйте новые URL и API ключ');
+              addLog('→ Нажмите "Connect to Supabase" в правом углу');
+              addLog('');
+              addLog('ШАГ 3: После восстановления проекта');
+              addLog('→ Нажмите "Полная диагностика" еще раз');
+              addLog('→ Если все ОК - создайте таблицы БД');
             }}
             disabled={loading}
           >
             <Settings size={14} />
-            Создать таблицы
+            🚨 Исправить проект
+          </button>
+          
+          <button 
+            className="debug-button"
+            onClick={() => {
+              addLog('🆕 СОЗДАНИЕ НОВОГО ПРОЕКТА SUPABASE:');
+              addLog('');
+              addLog('1. Откройте: https://supabase.com/dashboard/new');
+              addLog('2. Введите название проекта (например: gramvpn-new)');
+              addLog('3. Выберите регион (Europe для лучшей скорости)');
+              addLog('4. Создайте пароль для БД');
+              addLog('5. Нажмите "Create new project"');
+              addLog('6. Подождите 2-3 минуты создания');
+              addLog('7. Скопируйте новые URL и API Key');
+              addLog('8. Нажмите "Connect to Supabase" в правом углу');
+              addLog('9. Вставьте новые данные');
+              addLog('10. Вернитесь сюда и протестируйте');
+            }}
+            disabled={loading}
+          >
+            <Settings size={14} />
+            Создать новый проект
           </button>
           
           <button 
