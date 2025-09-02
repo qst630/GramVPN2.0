@@ -70,8 +70,8 @@ export const SubscriptionScreen: React.FC<SubscriptionScreenProps> = ({
   };
 
   // Calculate price with discount
-  const calculatePrice = (originalPrice: number) => {
-    if (promoValidation?.valid && promoValidation.promo_code) {
+  const calculatePrice = (originalPrice: number, planType: string) => {
+    if (promoValidation?.valid && promoValidation.promo_code && isPromoValidForPlan(planType)) {
       const discount = promoValidation.promo_code.discount_percent;
       return Math.round(originalPrice * (1 - discount / 100));
     }
@@ -79,24 +79,51 @@ export const SubscriptionScreen: React.FC<SubscriptionScreenProps> = ({
   };
 
   // Get discount percentage
-  const getDiscountPercent = () => {
-    if (promoValidation?.valid && promoValidation.promo_code) {
+  const getDiscountPercent = (planType?: string) => {
+    if (promoValidation?.valid && promoValidation.promo_code && (!planType || isPromoValidForPlan(planType))) {
       return promoValidation.promo_code.discount_percent;
     }
     return 0;
   };
 
+  // Check if promo code is valid for specific plan
+  const isPromoValidForPlan = (planType: string) => {
+    if (!promoValidation?.valid || !promoValidation.promo_code) {
+      return false;
+    }
+    
+    const validFor = promoValidation.promo_code.valid_for;
+    
+    // If valid_for is 'all', applies to all plans
+    if (validFor === 'all') {
+      return true;
+    }
+    
+    // If valid_for contains the specific plan type
+    if (validFor === planType) {
+      return true;
+    }
+    
+    // If valid_for contains multiple plans separated by comma
+    if (validFor && validFor.includes(',')) {
+      const validPlans = validFor.split(',').map(plan => plan.trim());
+      return validPlans.includes(planType);
+    }
+    
+    return false;
+  };
+
   const handlePayment = () => {
-    const validPromoCode = promoValidation?.valid ? promoCode : undefined;
+    const validPromoCode = promoValidation?.valid && isPromoValidForPlan(selectedPlan) ? promoCode : undefined;
     onShowPayment(selectedPlan, validPromoCode);
   };
 
   // Update plans with current prices
   const plansWithPrices = subscriptionPlans.map(plan => ({
     ...plan,
-    currentPrice: calculatePrice(plan.price),
+    currentPrice: calculatePrice(plan.price, plan.type),
     originalPrice: plan.price,
-    hasDiscount: promoValidation?.valid && getDiscountPercent() > 0
+    hasDiscount: promoValidation?.valid && isPromoValidForPlan(plan.type) && getDiscountPercent(plan.type) > 0
   }));
 
   const selectedPlanData = plansWithPrices.find(p => p.type === selectedPlan);
@@ -262,8 +289,8 @@ export const SubscriptionScreen: React.FC<SubscriptionScreenProps> = ({
 
       <button className="primary-button" onClick={handlePayment}>
         Оформить подписку
-        {selectedPlanData?.hasDiscount && (
-          <span className="button-discount"> (со скидкой {getDiscountPercent()}%)</span>
+        {selectedPlanData?.hasDiscount && isPromoValidForPlan(selectedPlan) && (
+          <span className="button-discount"> (со скидкой {getDiscountPercent(selectedPlan)}%)</span>
         )}
       </button>
 

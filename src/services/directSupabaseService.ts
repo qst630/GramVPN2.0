@@ -711,19 +711,68 @@ class DirectSupabaseService {
   }
 
   private mockValidatePromoCode(code: string): { valid: boolean; promo_code?: any; error?: string } {
-    if (code.toUpperCase() === 'WELCOME30') {
+    const upperCode = code.toUpperCase();
+    
+    // Mock promo codes for testing
+    const mockPromoCodes = {
+      'WELCOME30': {
+        id: 1,
+        code: 'WELCOME30',
+        discount_percent: 30,
+        valid_for: 'all', // Valid for all plans
+        is_active: true,
+        is_one_time: false,
+        usage_count: 0,
+        created_at: new Date().toISOString()
+      },
+      'MONTH30': {
+        id: 2,
+        code: 'MONTH30',
+        discount_percent: 30,
+        valid_for: '30days', // Valid only for 30-day plan
+        is_active: true,
+        is_one_time: false,
+        usage_count: 0,
+        created_at: new Date().toISOString()
+      },
+      'QUARTER20': {
+        id: 3,
+        code: 'QUARTER20',
+        discount_percent: 20,
+        valid_for: '90days', // Valid only for 90-day plan
+        is_active: true,
+        is_one_time: false,
+        usage_count: 0,
+        created_at: new Date().toISOString()
+      },
+      'YEAR15': {
+        id: 4,
+        code: 'YEAR15',
+        discount_percent: 15,
+        valid_for: '365days', // Valid only for 365-day plan
+        is_active: true,
+        is_one_time: false,
+        usage_count: 0,
+        created_at: new Date().toISOString()
+      },
+      'LONGTERM25': {
+        id: 5,
+        code: 'LONGTERM25',
+        discount_percent: 25,
+        valid_for: '90days,365days', // Valid for 90-day and 365-day plans
+        is_active: true,
+        is_one_time: false,
+        usage_count: 0,
+        created_at: new Date().toISOString()
+      }
+    };
+    
+    const promoCode = mockPromoCodes[upperCode as keyof typeof mockPromoCodes];
+    
+    if (promoCode) {
       return {
         valid: true,
-        promo_code: {
-          id: 1,
-          code: 'WELCOME30',
-          discount_percent: 30,
-          valid_for: 'all',
-          is_active: true,
-          is_one_time: false,
-          usage_count: 0,
-          created_at: new Date().toISOString()
-        }
+        promo_code: promoCode
       };
     }
     
