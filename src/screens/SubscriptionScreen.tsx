@@ -57,6 +57,7 @@ export const SubscriptionScreen: React.FC<SubscriptionScreenProps> = ({
   const [promoCode, setPromoCode] = useState('');
   const [showPromoInput, setShowPromoInput] = useState(false);
   const [promoValidation, setPromoValidation] = useState<PromoCodeValidation | null>(null);
+  const [copied, setCopied] = useState(false);
   const { validatePromoCode, loading: promoLoading } = useMarketing();
 
   const referralCode = user?.referral_code || 'LOADING...';
@@ -81,7 +82,25 @@ export const SubscriptionScreen: React.FC<SubscriptionScreenProps> = ({
 
   const copyReferralCode = async () => {
     try {
-      await navigator.clipboard.writeText(referralCode);
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        await navigator.clipboard.writeText(referralCode);
+      } else {
+        // Fallback for older browsers
+        const textArea = document.createElement('textarea');
+        textArea.value = referralCode;
+        textArea.style.position = 'fixed';
+        textArea.style.left = '-999999px';
+        textArea.style.top = '-999999px';
+        document.body.appendChild(textArea);
+        textArea.focus();
+        textArea.select();
+        document.execCommand('copy');
+        document.body.removeChild(textArea);
+      }
+      
+      console.log('✅ Referral code copied:', referralCode);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
     } catch (err) {
       console.error('Failed to copy:', err);
     }
@@ -194,12 +213,21 @@ export const SubscriptionScreen: React.FC<SubscriptionScreenProps> = ({
 
       <div className="referral-code">
         <span style={{ color: '#8892b0' }}>Ваш код:</span>
-        <span style={{ fontSize: '16px', fontWeight: '600', letterSpacing: '1px' }}>
+        <span style={{ 
+          fontSize: '20px', 
+          fontWeight: '700', 
+          letterSpacing: '2px',
+          color: '#6366f1',
+          fontFamily: 'monospace'
+        }}>
           {referralCode}
         </span>
-        <button className="copy-button" onClick={copyReferralCode}>
+        <button 
+          className={`copy-button ${copied ? 'copied' : ''}`} 
+          onClick={copyReferralCode}
+        >
           <Copy size={12} />
-          Копировать
+          {copied ? 'Скопировано!' : 'Копировать'}
         </button>
       </div>
     </div>

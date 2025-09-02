@@ -15,11 +15,36 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({
   freeTrialStatus,
   telegramUser 
 }) => {
+  const [copied, setCopied] = useState(false);
   const referrals = { invited: 0, daysEarned: 0 };
-  const referralCode = 'REF123';
+  const referralCode = user?.referral_code || 'LOADING...';
   
   const copyReferralCode = () => {
-    // Copy functionality
+    if (!user?.referral_code) return;
+    
+    try {
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(user.referral_code);
+      } else {
+        // Fallback for older browsers
+        const textArea = document.createElement('textarea');
+        textArea.value = user.referral_code;
+        textArea.style.position = 'fixed';
+        textArea.style.left = '-999999px';
+        textArea.style.top = '-999999px';
+        document.body.appendChild(textArea);
+        textArea.focus();
+        textArea.select();
+        document.execCommand('copy');
+        document.body.removeChild(textArea);
+      }
+      
+      console.log('✅ Referral code copied:', user.referral_code);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    } catch (err) {
+      console.error('Failed to copy:', err);
+    }
   };
 
   const formatDate = (dateString?: string) => {
@@ -164,12 +189,22 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({
 
         <div className="referral-code">
           <span style={{ color: '#8892b0' }}>Ваш реферальный код:</span>
-          <span style={{ fontSize: '16px', fontWeight: '600', letterSpacing: '1px' }}>
+          <span style={{ 
+            fontSize: '20px', 
+            fontWeight: '700', 
+            letterSpacing: '2px',
+            color: '#6366f1',
+            fontFamily: 'monospace'
+          }}>
             {referralCode}
           </span>
-          <button className="copy-button" onClick={copyReferralCode}>
+          <button 
+            className={`copy-button ${copied ? 'copied' : ''}`} 
+            onClick={copyReferralCode}
+            disabled={!user?.referral_code}
+          >
             <Copy size={12} />
-            Копировать
+            {copied ? 'Скопировано!' : 'Копировать'}
           </button>
         </div>
 

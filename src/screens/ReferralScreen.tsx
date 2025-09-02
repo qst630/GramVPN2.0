@@ -14,16 +14,37 @@ export const ReferralScreen: React.FC<ReferralScreenProps> = ({
   referralStats 
 }) => {
   const [copied, setCopied] = React.useState(false);
+  const [copyError, setCopyError] = React.useState(false);
 
   const copyReferralCode = async () => {
     if (!user?.referral_code) return;
     
     try {
-      await navigator.clipboard.writeText(user.referral_code);
+      // Try modern clipboard API first
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        await navigator.clipboard.writeText(user.referral_code);
+      } else {
+        // Fallback for older browsers
+        const textArea = document.createElement('textarea');
+        textArea.value = user.referral_code;
+        textArea.style.position = 'fixed';
+        textArea.style.left = '-999999px';
+        textArea.style.top = '-999999px';
+        document.body.appendChild(textArea);
+        textArea.focus();
+        textArea.select();
+        document.execCommand('copy');
+        document.body.removeChild(textArea);
+      }
+      
+      console.log('✅ Referral code copied:', user.referral_code);
       setCopied(true);
+      setCopyError(false);
       setTimeout(() => setCopied(false), 2000);
     } catch (err) {
       console.error('Failed to copy:', err);
+      setCopyError(true);
+      setTimeout(() => setCopyError(false), 2000);
     }
   };
 
@@ -65,16 +86,22 @@ export const ReferralScreen: React.FC<ReferralScreenProps> = ({
 
       <div className="referral-code">
         <span style={{ color: '#8892b0' }}>Ваш реферальный код:</span>
-        <span style={{ fontSize: '18px', fontWeight: '600', letterSpacing: '2px' }}>
+        <span style={{ 
+          fontSize: '24px', 
+          fontWeight: '700', 
+          letterSpacing: '3px',
+          color: '#6366f1',
+          fontFamily: 'monospace'
+        }}>
           {user?.referral_code || 'LOADING...'}
         </span>
         <button 
-          className={`copy-button ${copied ? 'copied' : ''}`} 
+          className={`copy-button ${copied ? 'copied' : ''} ${copyError ? 'error' : ''}`} 
           onClick={copyReferralCode}
           disabled={!user?.referral_code}
         >
           {copied ? <Check size={12} /> : <Copy size={12} />}
-          {copied ? 'Скопировано!' : 'Копировать'}
+          {copied ? 'Скопировано!' : copyError ? 'Ошибка!' : 'Копировать'}
         </button>
       </div>
 

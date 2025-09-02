@@ -18,13 +18,17 @@ class DirectSupabaseService {
 
   // Generate unique referral code
   private generateReferralCode(telegramId: number): string {
-    // Generate 5-character code with uppercase letters and numbers
+    // Generate exactly 5-character code with uppercase letters and numbers only
     const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
-    let result = '';
+    let code = '';
+    
+    // Generate 5 random characters
     for (let i = 0; i < 5; i++) {
-      result += chars.charAt(Math.floor(Math.random() * chars.length));
+      code += chars.charAt(Math.floor(Math.random() * chars.length));
     }
-    return result;
+    
+    console.log('🎫 Generated referral code:', code);
+    return code;
   }
 
   async getOrCreateUser(telegramUser: any, referralCode?: string): Promise<User> {
