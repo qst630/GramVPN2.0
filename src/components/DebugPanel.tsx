@@ -639,21 +639,82 @@ export const DebugPanel: React.FC<DebugPanelProps> = ({ user, onRefresh }) => {
           <button 
             className="debug-button"
             onClick={() => {
-              addLog('📋 QUICK SETUP GUIDE:');
+              addLog('🔧 RLS ПОЛИТИКИ - ПОШАГОВОЕ РЕШЕНИЕ:');
               addLog('');
-              addLog('1. ✅ Supabase project created');
-              addLog('2. ✅ Environment variables configured');
-              addLog('3. ❌ Database tables missing');
+              addLog('ПРОБЛЕМА: Нет прав на INSERT в таблицу users');
+              addLog('ПРИЧИНА: Строгие RLS политики блокируют создание пользователей');
               addLog('');
-              addLog('🔧 TO FIX: Go to Supabase Dashboard → SQL Editor');
-              addLog('📝 Copy-paste the SQL from "Test Connection" results');
-              addLog('▶️ Run the SQL to create tables');
-              addLog('🎉 Then test connection again!');
+              addLog('🔧 РЕШЕНИЕ:');
+              addLog('1. Откройте Supabase Dashboard → SQL Editor');
+              addLog('2. Скопируйте и выполните этот SQL:');
+              addLog('');
+              addLog('-- Удалить старые политики');
+              addLog('DROP POLICY IF EXISTS "Users can manage own data" ON users;');
+              addLog('DROP POLICY IF EXISTS "Users can create own account" ON users;');
+              addLog('DROP POLICY IF EXISTS "Users can read own data" ON users;');
+              addLog('');
+              addLog('-- Создать новые простые политики');
+              addLog('CREATE POLICY "Allow user creation" ON users');
+              addLog('  FOR INSERT TO anon, authenticated WITH CHECK (true);');
+              addLog('');
+              addLog('CREATE POLICY "Allow user read" ON users');
+              addLog('  FOR SELECT TO anon, authenticated USING (true);');
+              addLog('');
+              addLog('CREATE POLICY "Allow user update" ON users');
+              addLog('  FOR UPDATE TO anon, authenticated USING (true);');
+              addLog('');
+              addLog('3. Нажмите "Run" в SQL Editor');
+              addLog('4. Вернитесь сюда и протестируйте создание пользователя');
+              addLog('');
+              addLog('💡 Эти политики разрешают всем операции с пользователями');
+              addLog('💡 Для продакшена можно будет сделать более строгие');
             }}
             disabled={loading}
           >
             <Settings size={14} />
-            Quick Setup Guide
+            🔧 Исправить RLS политики
+          </button>
+          
+          <button 
+            className="debug-button"
+            onClick={() => {
+              addLog('📋 ПОЛНЫЙ SQL ДЛЯ ИСПРАВЛЕНИЯ RLS:');
+              addLog('');
+              addLog('-- Скопируйте весь этот блок в Supabase SQL Editor:');
+              addLog('');
+              addLog('-- 1. Удаляем все старые политики');
+              addLog('DROP POLICY IF EXISTS "Users can manage own data" ON users;');
+              addLog('DROP POLICY IF EXISTS "Users can create own account" ON users;');
+              addLog('DROP POLICY IF EXISTS "Users can read own data" ON users;');
+              addLog('DROP POLICY IF EXISTS "Users can update own data" ON users;');
+              addLog('DROP POLICY IF EXISTS "Service role can manage all users" ON users;');
+              addLog('');
+              addLog('-- 2. Создаем новые простые политики');
+              addLog('CREATE POLICY "Allow user creation" ON users');
+              addLog('  FOR INSERT TO anon, authenticated WITH CHECK (true);');
+              addLog('');
+              addLog('CREATE POLICY "Allow user read" ON users');
+              addLog('  FOR SELECT TO anon, authenticated USING (true);');
+              addLog('');
+              addLog('CREATE POLICY "Allow user update" ON users');
+              addLog('  FOR UPDATE TO anon, authenticated USING (true);');
+              addLog('');
+              addLog('CREATE POLICY "Service role full access" ON users');
+              addLog('  FOR ALL TO service_role USING (true);');
+              addLog('');
+              addLog('-- 3. Аналогично для других таблиц');
+              addLog('CREATE POLICY "Allow subscription operations" ON subscriptions');
+              addLog('  FOR ALL TO anon, authenticated USING (true);');
+              addLog('');
+              addLog('CREATE POLICY "Allow referral operations" ON referral_bonuses');
+              addLog('  FOR ALL TO anon, authenticated USING (true);');
+              addLog('');
+              addLog('💡 После выполнения SQL - протестируйте создание пользователя!');
+            }}
+            disabled={loading}
+          >
+            <Database size={14} />
+            📋 Полный SQL для RLS
           </button>
         </div>
       </div>
