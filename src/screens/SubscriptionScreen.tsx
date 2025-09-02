@@ -136,7 +136,7 @@ export const SubscriptionScreen: React.FC<SubscriptionScreenProps> = ({
       price: plansWithPrices.find(p => p.type === '30days')?.currentPrice || 150,
       originalPrice: plansWithPrices.find(p => p.type === '30days')?.originalPrice || 150,
       hasDiscount: plansWithPrices.find(p => p.type === '30days')?.hasDiscount || false,
-      features: plansWithPrices.find(p => p.type === '30days')?.currentPrice === 0 ? 'Бесплатный период' : 'Базовая защита'
+      features: 'Базовая защита'
     },
     {
       id: '90days',
@@ -145,7 +145,7 @@ export const SubscriptionScreen: React.FC<SubscriptionScreenProps> = ({
       originalPrice: plansWithPrices.find(p => p.type === '90days')?.originalPrice || 350,
       hasDiscount: plansWithPrices.find(p => p.type === '90days')?.hasDiscount || false,
       monthlyPrice: Math.round((plansWithPrices.find(p => p.type === '90days')?.currentPrice || 350) / 3),
-      features: plansWithPrices.find(p => p.type === '90days')?.currentPrice === 0 ? 'Бесплатный период' : 'Премиум защита + скидка',
+      features: 'Премиум защита + скидка',
       popular: true
     },
     {
@@ -155,7 +155,7 @@ export const SubscriptionScreen: React.FC<SubscriptionScreenProps> = ({
       originalPrice: plansWithPrices.find(p => p.type === '365days')?.originalPrice || 1100,
       hasDiscount: plansWithPrices.find(p => p.type === '365days')?.hasDiscount || false,
       monthlyPrice: Math.round((plansWithPrices.find(p => p.type === '365days')?.currentPrice || 1100) / 12),
-      features: plansWithPrices.find(p => p.type === '365days')?.currentPrice === 0 ? 'Бесплатный период' : 'Максимальная выгода + бонусы'
+      features: 'Максимальная выгода + бонусы'
     }
   ];
 
@@ -217,16 +217,29 @@ export const SubscriptionScreen: React.FC<SubscriptionScreenProps> = ({
                 <div className="plan-name-container">
                   <span className="plan-name">
                     {plan.title} - 
-                    {plan.hasDiscount && (
+                    {plan.hasDiscount && plan.price > 0 && (
                       <span className="original-price">{plan.originalPrice} ₽</span>
                     )}
-                    <span className={plan.hasDiscount ? 'discounted-price' : ''}>
-                      {plan.price === 0 ? ' БЕСПЛАТНО' : ` ${plan.price} ₽`}
+                    {plan.price === 0 ? (
+                      <>
+                        <span className="original-price">{plan.originalPrice} ₽</span>
+                        <span className="free-price"> БЕСПЛАТНО</span>
+                      </>
+                    ) : (
+                      <span className={plan.hasDiscount ? 'discounted-price' : ''}>
+                        {` ${plan.price} ₽`}
+                      </span>
+                    )}
                     </span>
                   </span>
-                  {plan.hasDiscount && (
+                  {plan.hasDiscount && plan.price > 0 && (
                     <span className="discount-badge">
-                      {getDiscountPercent(plan.id) === 100 ? 'БЕСПЛАТНО' : `-${getDiscountPercent(plan.id)}%`}
+                      -{getDiscountPercent(plan.id)}%
+                    </span>
+                  )}
+                  {plan.price === 0 && (
+                    <span className="free-badge">
+                      БЕСПЛАТНО
                     </span>
                   )}
                 </div>
@@ -296,12 +309,9 @@ export const SubscriptionScreen: React.FC<SubscriptionScreenProps> = ({
 
       <button className="primary-button" onClick={handlePayment}>
         {selectedPlanData?.currentPrice === 0 ? 'Получить бесплатно' : 'Оформить подписку'}
-        {selectedPlanData?.hasDiscount && isPromoValidForPlan(selectedPlan) && (
+        {selectedPlanData?.hasDiscount && selectedPlanData?.currentPrice > 0 && isPromoValidForPlan(selectedPlan) && (
           <span className="button-discount">
-            {getDiscountPercent(selectedPlan) === 100 
-              ? ' (бесплатно по промокоду)' 
-              : ` (со скидкой ${getDiscountPercent(selectedPlan)}%)`
-            }
+            {` (со скидкой ${getDiscountPercent(selectedPlan)}%)`}
           </span>
         )}
       </button>
