@@ -213,7 +213,7 @@ export const SubscriptionScreen: React.FC<SubscriptionScreenProps> = ({
         {plans.map((plan) => (
           <div
             key={plan.id}
-            className={`plan-option ${plan.popular ? 'popular' : ''} ${
+            className={`plan-option ${plan.popular ? 'popular' : ''} ${getDiscountPercent(plan.id) === 100 ? 'free-plan' : ''} ${
               selectedPlan === plan.id ? 'selected' : ''
             }`}
             onClick={() => setSelectedPlan(plan.id)}
@@ -240,7 +240,7 @@ export const SubscriptionScreen: React.FC<SubscriptionScreenProps> = ({
                   {plan.hasDiscount && getDiscountPercent(plan.id) === 100 && (
                     <span className="free-badge">Бесплатно</span>
                   )}
-                  {plan.hasDiscount && plan.price > 0 && (
+                  {plan.hasDiscount && plan.price > 0 && getDiscountPercent(plan.id) !== 100 && (
                     <span className="discount-badge">-{getDiscountPercent(plan.id)}%</span>
                   )}
                   {plan.monthlyPrice && getDiscountPercent(plan.id) !== 100 && (
