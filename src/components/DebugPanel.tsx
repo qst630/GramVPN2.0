@@ -26,15 +26,27 @@ export const DebugPanel: React.FC<DebugPanelProps> = ({ user, onRefresh }) => {
         username: 'testuser'
       };
       
-      addLog(`Creating test VPN user: ${testUser.first_name} (ID: ${testUser.id})`);
+      addLog(`🧪 TESTING USER CREATION`);
+      addLog(`👤 Test user data: ${testUser.first_name} ${testUser.last_name} (ID: ${testUser.id})`);
+      addLog(`📡 This will test the complete user creation flow...`);
       
       const result = await directSupabaseService.getOrCreateUser(testUser);
-      addLog(`✅ VPN User created successfully: ${result.referral_code}`);
+      addLog(`✅ SUCCESS: User created with referral code: ${result.referral_code}`);
+      addLog(`📊 User details: ID=${result.id}, Telegram=${result.telegram_id}`);
       onRefresh();
     } catch (error) {
-      addLog(`❌ Error creating VPN user: ${error instanceof Error ? error.message : error}`);
-      if (error instanceof Error && error.message.includes('Database error:')) {
-        addLog(`💡 This might be a database schema issue. Check if migrations are applied.`);
+      addLog(`❌ FAILED: User creation error: ${error instanceof Error ? error.message : error}`);
+      
+      if (error instanceof Error) {
+        if (error.message.includes('tables not created')) {
+          addLog(`💡 SOLUTION: Database tables missing - create them in Supabase Dashboard`);
+        } else if (error.message.includes('permission')) {
+          addLog(`💡 SOLUTION: RLS policy issue - check database permissions`);
+        } else if (error.message.includes('Failed to fetch')) {
+          addLog(`💡 SOLUTION: Connection issue - check Supabase project status`);
+        } else {
+          addLog(`💡 SOLUTION: Unknown error - check Supabase Dashboard for issues`);
+        }
       }
     } finally {
       setLoading(false);
@@ -543,6 +555,73 @@ export const DebugPanel: React.FC<DebugPanelProps> = ({ user, onRefresh }) => {
           >
             <User size={14} />
             Test User Creation
+          </button>
+          
+          <button 
+            className="debug-button"
+            onClick={() => {
+              addLog('🔍 CHECKING USER CREATION REQUIREMENTS...');
+              addLog('');
+              addLog('✅ Requirements checklist:');
+              addLog('1. Supabase URL configured: ' + (import.meta.env.VITE_SUPABASE_URL ? '✅' : '❌'));
+              addLog('2. Supabase API key configured: ' + (import.meta.env.VITE_SUPABASE_ANON_KEY ? '✅' : '❌'));
+              addLog('3. Database tables exist: ❓ (test with "Test Connection")');
+              addLog('4. RLS policies allow insert: ❓ (test with "Test User Creation")');
+              addLog('');
+              addLog('💡 If any ❌ - fix that first');
+              addLog('💡 If all ✅ but still fails - check Supabase Dashboard logs');
+            }}
+            disabled={loading}
+          >
+            <Settings size={14} />
+            Check Requirements
+          </button>
+          
+          <button 
+            className="debug-button"
+            onClick={async () => {
+              addLog('🔍 TESTING TABLE ACCESS...');
+              
+              if (!import.meta.env.VITE_SUPABASE_URL || !import.meta.env.VITE_SUPABASE_ANON_KEY) {
+                addLog('❌ Supabase not configured');
+                return;
+              }
+              
+              try {
+                // Test if we can read from users table
+                addLog('📡 Testing SELECT from users table...');
+                const response = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/rest/v1/users?select=id&limit=1`, {
+                  method: 'GET',
+                  headers: {
+                    'apikey': import.meta.env.VITE_SUPABASE_ANON_KEY,
+                    'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}`,
+                    'Content-Type': 'application/json'
+                  }
+                });
+                
+                addLog(`📡 SELECT response: ${response.status} ${response.statusText}`);
+                
+                if (response.ok) {
+                  const data = await response.json();
+                  addLog('✅ Table exists and readable');
+                  addLog(`📊 Current users count: ${data.length}`);
+                } else if (response.status === 404) {
+                  addLog('❌ Table "users" does not exist');
+                  addLog('💡 Create tables in Supabase Dashboard → SQL Editor');
+                } else if (response.status === 401) {
+                  addLog('❌ Authentication failed - check API key');
+                } else {
+                  const errorText = await response.text();
+                  addLog(`❌ Unexpected error: ${errorText}`);
+                }
+              } catch (error) {
+                addLog(`❌ Network error: ${error}`);
+              }
+            }}
+            disabled={loading}
+          >
+            <Database size={14} />
+            Test Table Access
           </button>
           
           <button 

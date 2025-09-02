@@ -40,6 +40,10 @@ export const useVPN = (telegramUser: any, referralCode?: string): UseVPNReturn =
     // Check if Supabase is configured
     if (!import.meta.env.VITE_SUPABASE_URL || !import.meta.env.VITE_SUPABASE_ANON_KEY) {
       console.log('⚠️ Supabase not configured, using demo mode');
+      console.log('📊 Environment check:', {
+        hasUrl: !!import.meta.env.VITE_SUPABASE_URL,
+        hasKey: !!import.meta.env.VITE_SUPABASE_ANON_KEY
+      });
       setUser({
         id: Date.now(),
         telegram_id: telegramUser.id,
@@ -56,45 +60,66 @@ export const useVPN = (telegramUser: any, referralCode?: string): UseVPNReturn =
       setLoading(false);
       return;
     }
-    console.log('🚀 Loading VPN user for Telegram ID:', telegramUser.id);
+    
+    console.log('🚀 STARTING USER LOAD PROCESS');
+    console.log('📊 Telegram user data:', {
+      id: telegramUser.id,
+      first_name: telegramUser.first_name,
+      last_name: telegramUser.last_name,
+      username: telegramUser.username
+    });
+    console.log('🎫 Referral code from URL:', referralCode || 'None');
+    
     setLoading(true);
 
     try {
       setError(null);
       
       // Get or create user
-      console.log('🔍 Getting or creating user for Telegram ID:', telegramUser.id);
-      console.log('🎫 Using referral code:', referralCode || 'None');
+      console.log('🔍 STEP 1: Getting or creating user...');
       const userData = await directSupabaseService.getOrCreateUser(telegramUser, referralCode);
-      console.log('✅ User data:', userData);
+      console.log('✅ STEP 1 COMPLETE: User data received:', {
+        id: userData.id,
+        telegram_id: userData.telegram_id,
+        referral_code: userData.referral_code,
+        subscription_status: userData.subscription_status
+      });
       setUser(userData);
 
       // Get user status (subscription info)
-      console.log('📊 Getting user status...');
+      console.log('🔍 STEP 2: Getting user status...');
       const status = await directSupabaseService.getUserStatus(telegramUser.id);
-      console.log('📊 User status:', status);
+      console.log('✅ STEP 2 COMPLETE: User status:', status);
       
       setSubscriptionType(status.subscription_type);
       setDaysRemaining(status.days_remaining);
       setHasActiveSubscription(status.has_active_subscription);
 
       // Get referral stats
-      console.log('📈 Getting referral stats...');
+      console.log('🔍 STEP 3: Getting referral stats...');
       const stats = await directSupabaseService.getReferralStats(telegramUser.id);
-      console.log('📊 Referral stats:', stats);
+      console.log('✅ STEP 3 COMPLETE: Referral stats:', stats);
       setReferralStats(stats);
 
+      console.log('🎉 USER LOAD PROCESS COMPLETED SUCCESSFULLY');
+
     } catch (err) {
-      console.error('❌ Error loading VPN user:', err);
+      console.error('❌ FATAL ERROR in user load process:', err);
       const errorMessage = err instanceof Error ? err.message : 'Failed to load user data';
-      console.error('🚨 Setting error state:', errorMessage);
+      console.error('🚨 Error details:', {
+        message: errorMessage,
+        type: typeof err,
+        stack: err instanceof Error ? err.stack : 'No stack'
+      });
       
       // Only show error if no Supabase connection configured
       if (!import.meta.env.VITE_SUPABASE_URL || !import.meta.env.VITE_SUPABASE_ANON_KEY) {
+        console.log('🔧 Environment not configured, showing setup error');
         setError('База данных не настроена. Нажмите "Connect to Supabase" для настройки.');
       } else {
         // For configured Supabase but connection issues, use fallback mode
-        console.log('🔄 Using fallback mode due to connection issues');
+        console.log('🔄 FALLBACK MODE: Using demo data due to connection issues');
+        console.log('💡 This means Supabase is configured but not accessible');
         setUser({
           id: Date.now(),
           telegram_id: telegramUser.id,
@@ -110,7 +135,7 @@ export const useVPN = (telegramUser: any, referralCode?: string): UseVPNReturn =
         setReferralStats({ referrals_count: 0, bonus_days_earned: 0 });
       }
     } finally {
-      console.log('✅ Load VPN user process completed');
+      console.log('🏁 USER LOAD PROCESS FINISHED');
       setLoading(false);
     }
   };

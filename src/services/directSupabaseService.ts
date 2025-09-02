@@ -25,38 +25,55 @@ class DirectSupabaseService {
 
   async getOrCreateUser(telegramUser: any, referralCode?: string): Promise<User> {
     console.log('👤 Getting or creating user:', telegramUser.first_name, 'ID:', telegramUser.id);
+    console.log('📊 Service mode:', this.isMockMode ? '🧪 Mock' : '🌐 Database');
+    console.log('🎫 Referral code:', referralCode || 'None');
     
     if (this.isMockMode) {
+      console.log('🧪 Using mock mode - user will not be saved to database');
       return this.mockGetOrCreateUser(telegramUser, referralCode);
     }
 
     try {
       // Try to get existing user
-      console.log('🔍 Checking for existing user...');
+      console.log('🔍 Checking for existing user in database...');
+      console.log('📡 Query: SELECT * FROM users WHERE telegram_id =', telegramUser.id);
+      
       const { data: existingUser, error: getUserError } = await supabase
         .from('users')
         .select('*')
         .eq('telegram_id', telegramUser.id)
         .single();
 
+      console.log('📡 Database response:', {
+        hasUser: !!existingUser,
+        error: getUserError?.message,
+        errorCode: getUserError?.code
+      });
+
       if (getUserError && getUserError.code !== 'PGRST116') {
         console.error('❌ Error getting user:', getUserError);
+        console.error('❌ Full error details:', getUserError);
         throw getUserError;
       }
 
       if (existingUser) {
-        console.log('✅ User found:', existingUser.referral_code);
+        console.log('✅ Existing user found:', {
+          id: existingUser.id,
+          referral_code: existingUser.referral_code,
+          created_at: existingUser.created_at
+        });
         return existingUser;
       }
 
       // Create new user
-      console.log('👤 Creating new user...');
+      console.log('👤 User not found, creating new user...');
       const newReferralCode = this.generateReferralCode(telegramUser.id);
+      console.log('🎫 Generated referral code:', newReferralCode);
       
       // Find referrer if referral code provided
       let referrerId = null;
       if (referralCode) {
-        console.log('🎫 Looking for referrer with code:', referralCode);
+        console.log('🔍 Looking for referrer with code:', referralCode);
         const { data: referrer } = await supabase
           .from('users')
           .select('id')
@@ -65,7 +82,9 @@ class DirectSupabaseService {
         
         if (referrer) {
           referrerId = referrer.id;
-          console.log('✅ Referrer found:', referrerId);
+          console.log('✅ Referrer found with ID:', referrerId);
+        } else {
+          console.log('⚠️ Referrer not found for code:', referralCode);
         }
       }
 
@@ -78,38 +97,80 @@ class DirectSupabaseService {
         subscription_status: false
       };
 
+      console.log('📝 User data to insert:', userData);
+      console.log('📡 Executing INSERT query...');
+
       const { data: newUser, error: createError } = await supabase
         .from('users')
         .insert(userData)
         .select()
         .single();
 
+      console.log('📡 Insert response:', {
+        hasUser: !!newUser,
+        error: createError?.message,
+        errorCode: createError?.code,
+        errorDetails: createError?.details
+      });
+
       if (createError) {
-        console.error('❌ Error creating user:', createError);
+        console.error('❌ CRITICAL: Error creating user:', createError);
+        console.error('❌ Error details:', {
+          message: createError.message,
+          code: createError.code,
+          details: createError.details,
+          hint: createError.hint
+        });
+        
+        // Check if it's a table doesn't exist error
+        if (createError.code === '42P01') {
+          console.error('🚨 TABLE MISSING: users table does not exist!');
+          throw new Error('Database tables not created. Please create tables in Supabase Dashboard.');
+        }
+        
+        // Check if it's a permission error
+        if (createError.code === '42501') {
+          console.error('🚨 PERMISSION ERROR: RLS policy blocking insert');
+          throw new Error('Database permission error. Check RLS policies.');
+        }
+        
         throw createError;
       }
 
-      console.log('✅ User created:', newUser.referral_code);
+      console.log('✅ SUCCESS: User created successfully!', {
+        id: newUser.id,
+        telegram_id: newUser.telegram_id,
+        referral_code: newUser.referral_code,
+        full_name: newUser.full_name
+      });
 
       // Process referral bonus if applicable
       if (referrerId) {
-        console.log('🎁 Adding referral bonus...');
-        await supabase
+        console.log('🎁 Processing referral bonus for referrer:', referrerId);
+        const { error: bonusError } = await supabase
           .from('referral_bonuses')
           .insert({
             referrer_id: referrerId,
             referred_id: newUser.id,
             bonus_days: 7
           });
+        
+        if (bonusError) {
+          console.error('⚠️ Error adding referral bonus:', bonusError);
+        } else {
+          console.log('✅ Referral bonus added successfully');
+        }
       }
 
       return newUser;
 
     } catch (error) {
-      console.error('❌ Error in getOrCreateUser:', error);
+      console.error('❌ FATAL ERROR in getOrCreateUser:', error);
+      console.error('❌ Error type:', typeof error);
+      console.error('❌ Error stack:', error instanceof Error ? error.stack : 'No stack');
       
       // Fallback to mock mode on error
-      console.log('🔄 Falling back to mock mode');
+      console.log('🔄 FALLBACK: Switching to mock mode due to database error');
       this.isMockMode = true;
       return this.mockGetOrCreateUser(telegramUser, referralCode);
     }
