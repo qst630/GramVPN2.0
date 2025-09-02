@@ -239,7 +239,9 @@ function App() {
       {activeScreen === 'subscription' && (
         <SubscriptionScreen
           subscriptionPlans={subscriptionPlans}
+          subscriptionPlans={subscriptionPlans}
           onShowPayment={handleShowPayment}
+          onValidatePromoCode={validatePromoCode}
           onValidatePromoCode={validatePromoCode}
           user={user}
           referralStats={referralStats}

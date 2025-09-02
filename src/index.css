@@ -333,6 +333,14 @@ body {
 
 .promo-check.valid {
   display: flex;
+  background: #10b981;
+  color: white;
+}
+
+.promo-check.error {
+  display: flex;
+  background: #ef4444;
+  color: white;
 }
 
 .promo-error {
@@ -361,6 +369,38 @@ body {
   border: 1px solid rgba(99, 102, 241, 0.2);
 }
 
+/* Plan pricing with discounts */
+.plan-name-container {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.original-price {
+  text-decoration: line-through;
+  color: #94a3b8;
+  font-size: 14px;
+}
+
+.discounted-price {
+  color: #10b981;
+  font-weight: 600;
+}
+
+.discount-badge {
+  background: #10b981;
+  color: white;
+  font-size: 10px;
+  padding: 2px 6px;
+  border-radius: 4px;
+  font-weight: 600;
+}
+
+.button-discount {
+  font-size: 14px;
+  opacity: 0.9;
+}
 .primary-button {
   width: 100%;
   background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%);

@@ -71,6 +71,8 @@ export interface SubscriptionPlan {
   name: string;
   days: number;
   price: number;
+  originalPrice?: number;
+  hasDiscount?: boolean;
   monthlyPrice?: number;
   popular?: boolean;
   discount?: string;

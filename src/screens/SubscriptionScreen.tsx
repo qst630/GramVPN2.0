@@ -1,10 +1,12 @@
 import React, { useState } from 'react';
-import { Check, Copy } from 'lucide-react';
+import { Check, Copy, X } from 'lucide-react';
 import { useMarketing } from '../hooks/useMarketing';
 import { PromoCodeValidation } from '../types/user';
 
 interface SubscriptionScreenProps {
-  onShowPayment: () => void;
+  subscriptionPlans: SubscriptionPlan[];
+  onShowPayment: (planType: string, promoCode?: string) => void;
+  onValidatePromoCode: (code: string) => Promise<{ valid: boolean; promo_code?: any; error?: string }>;
   user: any;
   referralStats: { invited: number; daysEarned: number };
 }
@@ -49,7 +51,9 @@ const plans: Plan[] = [
 ];
 
 export const SubscriptionScreen: React.FC<SubscriptionScreenProps> = ({ 
-  onShowPayment, 
+  subscriptionPlans,
+  onShowPayment,
+  onValidatePromoCode,
   user,
   referralStats 
 }) => {
@@ -58,7 +62,7 @@ export const SubscriptionScreen: React.FC<SubscriptionScreenProps> = ({
   const [showPromoInput, setShowPromoInput] = useState(false);
   const [promoValidation, setPromoValidation] = useState<PromoCodeValidation | null>(null);
   const [copied, setCopied] = useState(false);
-  const { validatePromoCode, loading: promoLoading } = useMarketing();
+  const [promoLoading, setPromoLoading] = useState(false);
 
   const referralCode = user?.referral_code || 'LOADING...';
 
@@ -67,7 +71,79 @@ export const SubscriptionScreen: React.FC<SubscriptionScreenProps> = ({
     setPromoValidation(null);
     
     if (value.length >= 3) {
-      const validation = await validatePromoCode(value);
+      setPromoLoading(true);
+      try {
+        const validation = await onValidatePromoCode(value);
+        setPromoValidation(validation);
+      } catch (error) {
+        setPromoValidation({ valid: false, error: 'Ошибка проверки промокода' });
+      } finally {
+        setPromoLoading(false);
+      }
+    }
+  };
+
+  // Calculate price with discount
+  const calculatePrice = (originalPrice: number) => {
+    if (promoValidation?.valid && promoValidation.promo_code) {
+      const discount = promoValidation.promo_code.discount_percent;
+      return Math.round(originalPrice * (1 - discount / 100));
+    }
+    return originalPrice;
+  };
+
+  // Get discount percentage
+  const getDiscountPercent = () => {
+    if (promoValidation?.valid && promoValidation.promo_code) {
+      return promoValidation.promo_code.discount_percent;
+    }
+    return 0;
+  };
+
+  const handlePayment = () => {
+    const validPromoCode = promoValidation?.valid ? promoCode : undefined;
+    onShowPayment(selectedPlan, validPromoCode);
+  };
+
+  // Update plans with current prices
+  const plansWithPrices = subscriptionPlans.map(plan => ({
+    ...plan,
+    currentPrice: calculatePrice(plan.price),
+    originalPrice: plan.price,
+    hasDiscount: promoValidation?.valid && getDiscountPercent() > 0
+  }));
+
+  const selectedPlanData = plansWithPrices.find(p => p.type === selectedPlan);
+
+  const plans: Plan[] = [
+    {
+      id: '30days',
+      title: '30 дней',
+      price: plansWithPrices.find(p => p.type === '30days')?.currentPrice || 150,
+      originalPrice: plansWithPrices.find(p => p.type === '30days')?.originalPrice || 150,
+      hasDiscount: plansWithPrices.find(p => p.type === '30days')?.hasDiscount || false,
+      features: 'Базовая защита'
+    },
+    {
+      id: '90days',
+      title: '90 дней',
+      price: plansWithPrices.find(p => p.type === '90days')?.currentPrice || 350,
+      originalPrice: plansWithPrices.find(p => p.type === '90days')?.originalPrice || 350,
+      hasDiscount: plansWithPrices.find(p => p.type === '90days')?.hasDiscount || false,
+      monthlyPrice: Math.round((plansWithPrices.find(p => p.type === '90days')?.currentPrice || 350) / 3),
+      features: 'Премиум защита + скидка',
+      popular: true
+    },
+    {
+      id: '365days',
+      title: '365 дней',
+      price: plansWithPrices.find(p => p.type === '365days')?.currentPrice || 1100,
+      originalPrice: plansWithPrices.find(p => p.type === '365days')?.originalPrice || 1100,
+      hasDiscount: plansWithPrices.find(p => p.type === '365days')?.hasDiscount || false,
+      monthlyPrice: Math.round((plansWithPrices.find(p => p.type === '365days')?.currentPrice || 1100) / 12),
+      features: 'Максимальная выгода + бонусы'
+    }
+  ];
       setPromoValidation(validation);
     }
   };
@@ -127,7 +203,18 @@ export const SubscriptionScreen: React.FC<SubscriptionScreenProps> = ({
             </div>
             <div className="plan-info">
               <div className="plan-main">
-                <span className="plan-name">{plan.title} - {plan.price} ₽</span>
+                <div className="plan-name-container">
+                  <span className="plan-name">
+                    {plan.title} - 
+                    {plan.hasDiscount && (
+                      <span className="original-price">{plan.originalPrice} ₽</span>
+                    )}
+                    <span className={plan.hasDiscount ? 'discounted-price' : ''}> {plan.price} ₽</span>
+                  </span>
+                  {plan.hasDiscount && (
+                    <span className="discount-badge">-{getDiscountPercent()}%</span>
+                  )}
+                </div>
                 {plan.monthlyPrice && (
                   <span className="plan-monthly">{plan.monthlyPrice} ₽/мес</span>
                 )}
@@ -177,6 +264,11 @@ export const SubscriptionScreen: React.FC<SubscriptionScreenProps> = ({
               </div>
             )}
             {promoValidation?.error && (
+              <div className="promo-check error">
+                <X size={12} />
+              </div>
+            )}
+            {promoValidation?.error && (
               <div className="promo-error">
                 {promoValidation.error}
               </div>
@@ -190,11 +282,11 @@ export const SubscriptionScreen: React.FC<SubscriptionScreenProps> = ({
         )}
       </div>
 
-      <button className="primary-button" onClick={onShowPayment}>
-        {promoValidation?.valid 
-          ? `Оформить со скидкой ${promoValidation.campaign?.value}%` 
-          : 'Оформить подписку'
-        }
+      <button className="primary-button" onClick={handlePayment}>
+        Оформить подписку
+        {selectedPlanData?.hasDiscount && (
+          <span className="button-discount"> (со скидкой {getDiscountPercent()}%)</span>
+        )}
       </button>
 
       <div className="stats-section">
