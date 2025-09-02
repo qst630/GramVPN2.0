@@ -94,10 +94,19 @@ export const SubscriptionScreen: React.FC<SubscriptionScreenProps> = ({
     }
     
     const validFor = promoValidation.promo_code.valid_for;
+    const promoCodeName = promoValidation.promo_code.code;
     
     // If valid_for is 'all', applies to all plans
     if (validFor === 'all') {
       return true;
+    }
+    
+    // Check if promo code has plan suffix (e.g., TEST30_30, TEST100_30)
+    if (promoCodeName && promoCodeName.includes('_')) {
+      const suffix = promoCodeName.split('_').pop();
+      if (suffix === '30' && planType === '30days') return true;
+      if (suffix === '90' && planType === '90days') return true;
+      if (suffix === '365' && planType === '365days') return true;
     }
     
     // If valid_for contains the specific plan type

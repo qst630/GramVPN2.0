@@ -794,6 +794,26 @@ class DirectSupabaseService {
         is_one_time: true,
         usage_count: 0,
         created_at: new Date().toISOString()
+      },
+      'TEST30_30': {
+        id: 9,
+        code: 'TEST30_30',
+        discount_percent: 30,
+        valid_for: '30days', // 30% discount for 30-day plan
+        is_active: true,
+        is_one_time: false,
+        usage_count: 0,
+        created_at: new Date().toISOString()
+      },
+      'TEST100_30': {
+        id: 10,
+        code: 'TEST100_30',
+        discount_percent: 100,
+        valid_for: '30days', // 100% discount (free) for 30-day plan
+        is_active: true,
+        is_one_time: false,
+        usage_count: 0,
+        created_at: new Date().toISOString()
       }
     };
     
