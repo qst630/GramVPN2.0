@@ -216,29 +216,31 @@ export const SubscriptionScreen: React.FC<SubscriptionScreenProps> = ({
               <div className="plan-main">
                 <div className="plan-name-container">
                   <span className="plan-name">
-                    {plan.title} - {
-                      plan.hasDiscount && plan.price === 0 ? (
-                        <>
-                          <span className="original-price">{plan.originalPrice} ₽</span>
-                          <span className="free-price"> Бесплатно</span>
-                        </>
-                      ) : plan.hasDiscount && plan.price > 0 ? (
-                        <>
-                          <span className="original-price">{plan.originalPrice} ₽</span>
-                          <span className="discounted-price"> {plan.price} ₽</span>
-                  {plan.hasDiscount && plan.price === 0 ? (
-                    <span className="free-badge">
-                      Бесплатно
-                    </span>
-                  ) : plan.hasDiscount && plan.price > 0 ? (
-                    <span className="discount-badge">
-                      -{getDiscountPercent(plan.id)}%
-                    </span>
-                  ) : null}
-                  {plan.monthlyPrice && (
-                    <span className="plan-monthly">
-                      {plan.price === 0 ? 'Бесплатно' : `${plan.monthlyPrice} ₽/мес`}
-                    </span>
+                    {plan.title} - 
+                    {plan.hasDiscount && plan.price === 0 && (
+                      <>
+                        <span className="original-price">{plan.originalPrice} ₽</span>
+                        <span className="free-price"> Бесплатно</span>
+                      </>
+                    )}
+                    {plan.hasDiscount && plan.price > 0 && (
+                      <>
+                        <span className="original-price">{plan.originalPrice} ₽</span>
+                        <span className="discounted-price"> {plan.price} ₽</span>
+                      </>
+                    )}
+                    {!plan.hasDiscount && (
+                      <span>{plan.price} ₽</span>
+                    )}
+                  </span>
+                  {plan.hasDiscount && plan.price === 0 && (
+                    <span className="free-badge">Бесплатно</span>
+                  )}
+                  {plan.hasDiscount && plan.price > 0 && (
+                    <span className="discount-badge">-{getDiscountPercent(plan.id)}%</span>
+                  )}
+                  {plan.monthlyPrice && plan.price > 0 && (
+                    <span className="plan-monthly">{plan.monthlyPrice} ₽/мес</span>
                   )}
                 </div>
                 {(plan.popular || plan.id === '365days') && (
