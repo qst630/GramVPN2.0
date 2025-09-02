@@ -233,7 +233,7 @@ export const SubscriptionScreen: React.FC<SubscriptionScreenProps> = ({
         </div>
         
         {showPromoInput && (
-          <div className="promo-input-container">
+          <div className="promo-input-container" style={{ marginBottom: promoValidation?.error ? '40px' : '16px' }}>
             <input
               type="text"
               className="promo-input"
