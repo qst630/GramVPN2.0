@@ -100,38 +100,8 @@ export const DebugPanel: React.FC<DebugPanelProps> = ({ user, onRefresh }) => {
       const vpnFunctionUrl = `${url}/functions/v1/vpn-management`;
       addLog(`🔗 VPN Function URL: ${vpnFunctionUrl}`);
       
-      // Test 1: OPTIONS request (CORS preflight)
-      addLog('🔍 Step 1: Testing CORS preflight...');
-      try {
-        const optionsResponse = await fetch(vpnFunctionUrl, {
-          method: 'OPTIONS',
-          headers: {
-            'Origin': window.location.origin,
-            'Access-Control-Request-Method': 'POST',
-            'Access-Control-Request-Headers': 'content-type, authorization'
-          }
-        });
-        
-        addLog(`🔍 CORS preflight: ${optionsResponse.status} ${optionsResponse.statusText}`);
-        
-        if (optionsResponse.status === 404) {
-          addLog('❌ FUNCTION NOT FOUND (404)');
-          addLog('💡 The vpn-management function is not deployed');
-          addLog('💡 Deploy it in Supabase Dashboard → Edge Functions');
-          return;
-        } else if (!optionsResponse.ok) {
-          addLog(`❌ CORS preflight failed: ${optionsResponse.status}`);
-          return;
-        } else {
-          addLog('✅ CORS preflight successful');
-        }
-      } catch (corsError) {
-        addLog(`❌ CORS preflight failed: ${corsError}`);
-        return;
-      }
-      
-      // Test 2: Actual POST request
-      addLog('📡 Step 2: Testing actual function call...');
+      // Test 1: Direct POST request (skip OPTIONS to avoid CORS preflight issues)
+      addLog('🔍 Step 1: Testing direct function call...');
       try {
         const postResponse = await fetch(vpnFunctionUrl, {
           method: 'POST',
@@ -147,16 +117,32 @@ export const DebugPanel: React.FC<DebugPanelProps> = ({ user, onRefresh }) => {
         
         addLog(`📡 Function call: ${postResponse.status} ${postResponse.statusText}`);
         
-        if (postResponse.ok) {
+        if (postResponse.status === 404) {
+          addLog('❌ FUNCTION NOT FOUND (404)');
+          addLog('💡 The vpn-management function is not deployed');
+          addLog('💡 Deploy it in Supabase Dashboard → Edge Functions');
+          addLog('💡 Or use the deployment commands in the project');
+          return;
+        } else if (postResponse.ok) {
           const responseData = await postResponse.json();
           addLog('✅ FUNCTION WORKING CORRECTLY');
           addLog(`📊 Response: ${JSON.stringify(responseData, null, 2)}`);
         } else {
           const errorText = await postResponse.text();
-          addLog(`⚠️ Function error: ${errorText}`);
+          addLog(`⚠️ Function error (${postResponse.status}): ${errorText}`);
+          if (postResponse.status === 500) {
+            addLog('💡 This might be a function runtime error');
+            addLog('💡 Check Supabase Dashboard → Edge Functions → Logs');
+          }
         }
       } catch (postError) {
         addLog(`❌ Function call failed: ${postError}`);
+        if (postError instanceof TypeError && postError.message.includes('Failed to fetch')) {
+          addLog('💡 DIAGNOSIS: Function is not deployed or not accessible');
+          addLog('💡 SOLUTION 1: Deploy function in Supabase Dashboard');
+          addLog('💡 SOLUTION 2: Check if project is paused');
+          addLog('💡 SOLUTION 3: Verify API keys are correct');
+        }
       }
       
     } catch (error) {
@@ -441,25 +427,34 @@ export const DebugPanel: React.FC<DebugPanelProps> = ({ user, onRefresh }) => {
             disabled={loading}
           >
             <User size={14} />
-            Create Test User
+            Test VPN User Creation
           </button>
           
           <button 
             className="debug-button"
-            onClick={testStartTrial}
+            onClick={() => {
+              addLog('🎯 Testing VPN service in mock mode...');
+              testCreateUser();
+            }}
             disabled={loading || !user}
           >
             <Database size={14} />
-            Start Trial
+            Test Mock Mode
           </button>
           
           <button 
             className="debug-button"
-            onClick={testGetTrialStatus}
-            disabled={loading || !user}
+            onClick={() => {
+              addLog('📋 DEPLOYMENT INSTRUCTIONS:');
+              addLog('1. Open Supabase Dashboard');
+              addLog('2. Go to Edge Functions');
+              addLog('3. Deploy vpn-management function');
+              addLog('4. Or run: supabase functions deploy vpn-management');
+            }}
+            disabled={loading}
           >
-            <Database size={14} />
-            Check Trial Status
+            <Settings size={14} />
+            Show Deploy Instructions
           </button>
         </div>
       </div>

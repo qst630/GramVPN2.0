@@ -37,24 +37,8 @@ class VPNService {
     console.log('🔑 Has Auth Key:', !!import.meta.env.VITE_SUPABASE_ANON_KEY);
 
     try {
-      // First, test if the function exists with a simple OPTIONS request
-      console.log('🔍 Testing function availability...');
-      const optionsResponse = await fetch(VPN_FUNCTION_URL, {
-        method: 'OPTIONS',
-        headers: {
-          'Origin': window.location.origin,
-          'Access-Control-Request-Method': 'POST',
-          'Access-Control-Request-Headers': 'content-type, authorization'
-        }
-      });
-      
-      console.log('📡 OPTIONS response:', optionsResponse.status, optionsResponse.statusText);
-      
-      if (!optionsResponse.ok) {
-        throw new Error(`Function not available: ${optionsResponse.status} ${optionsResponse.statusText}`);
-      }
-
       // Now make the actual request
+      console.log('📡 Making direct POST request...');
       const response = await fetch(VPN_FUNCTION_URL, {
         method: 'POST',
         headers: {
@@ -93,13 +77,16 @@ class VPNService {
       
       if (
         error instanceof TypeError && errorMessage.includes('Failed to fetch') ||
+        errorMessage.includes('NetworkError') ||
         errorMessage.includes('CORS') ||
         errorMessage.includes('404') ||
         errorMessage.includes('Not Found') ||
-        errorMessage.includes('Function not available')
+        errorMessage.includes('Function not available') ||
+        errorMessage.includes('net::ERR_FAILED')
       ) {
-        console.log('🚨 VPN Function not available, falling back to mock mode');
-        console.log('💡 This usually means the Edge Function is not deployed');
+        console.log('🚨 VPN Function not deployed or not accessible');
+        console.log('💡 Edge Function "vpn-management" needs to be deployed in Supabase Dashboard');
+        console.log('💡 Falling back to mock mode for development');
         this.isMockMode = true;
         return this.handleMockRequest(action, payload);
       }
