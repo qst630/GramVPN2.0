@@ -19,8 +19,7 @@ export const ReferralScreen: React.FC<ReferralScreenProps> = ({
     if (!user?.referral_code) return;
     
     try {
-      const referralLink = `https://t.me/your_bot_name?start=${user.referral_code}`;
-      await navigator.clipboard.writeText(referralLink);
+      await navigator.clipboard.writeText(user.referral_code);
       setCopied(true);
       setTimeout(() => setCopied(false), 2000);
     } catch (err) {
@@ -65,9 +64,9 @@ export const ReferralScreen: React.FC<ReferralScreenProps> = ({
       </div>
 
       <div className="referral-code">
-        <span style={{ color: '#8892b0' }}>Ваша реферальная ссылка:</span>
-        <span style={{ fontSize: '12px', wordBreak: 'break-all' }}>
-          https://t.me/your_bot_name?start={user?.referral_code || 'LOADING...'}
+        <span style={{ color: '#8892b0' }}>Ваш реферальный код:</span>
+        <span style={{ fontSize: '18px', fontWeight: '600', letterSpacing: '2px' }}>
+          {user?.referral_code || 'LOADING...'}
         </span>
         <button 
           className={`copy-button ${copied ? 'copied' : ''}`} 

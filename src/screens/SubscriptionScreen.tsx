@@ -194,7 +194,9 @@ export const SubscriptionScreen: React.FC<SubscriptionScreenProps> = ({
 
       <div className="referral-code">
         <span style={{ color: '#8892b0' }}>Ваш код:</span>
-        <span>{referralCode}</span>
+        <span style={{ fontSize: '16px', fontWeight: '600', letterSpacing: '1px' }}>
+          {referralCode}
+        </span>
         <button className="copy-button" onClick={copyReferralCode}>
           <Copy size={12} />
           Копировать

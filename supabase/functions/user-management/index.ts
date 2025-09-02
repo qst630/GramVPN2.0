@@ -9,9 +9,13 @@ const corsHeaders = {
 
 // Generate unique referral code
 function generateReferralCode(telegramId: number): string {
-  const timestamp = Date.now().toString(36);
-  const random = Math.random().toString(36).substring(2, 8);
-  return `${telegramId}-${timestamp}${random}`.toUpperCase();
+  // Generate 5-character code with uppercase letters and numbers
+  const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
+  let result = '';
+  for (let i = 0; i < 5; i++) {
+    result += chars.charAt(Math.floor(Math.random() * chars.length));
+  }
+  return result;
 }
 
 serve(async (req) => {
