@@ -220,25 +220,21 @@ export const SubscriptionScreen: React.FC<SubscriptionScreenProps> = ({
                     {plan.hasDiscount && (
                       <span className="original-price">{plan.originalPrice} ₽</span>
                     )}
-                    {plan.hasDiscount && plan.price === 0 ? (
-                      <span className="free-price">Бесплатно</span>
-                    ) : plan.hasDiscount && plan.price > 0 ? (
-                      <span className="discounted-price">{` ${plan.price} ₽`}</span>
-                    ) : (
+                       {plan.price === 0 && <span className="free-price"> Бесплатно</span>}
+                       {plan.price > 0 && <span className="discounted-price"> {plan.price} ₽</span>}
                       <span>{` ${plan.price} ₽`}</span>
                     )}
                   </span>
                 </div>
-                {plan.hasDiscount && plan.price > 0 && (
+               {plan.hasDiscount && plan.price === 0 ? (
+                 <span className="free-badge">
+                   Бесплатно
+                 </span>
+               ) : plan.hasDiscount && plan.price > 0 ? (
                   <span className="discount-badge">
                     -{getDiscountPercent(plan.id)}%
                   </span>
-                )}
-                {plan.price === 0 && (
-                  <span className="free-badge">
-                    БЕСПЛАТНО
-                  </span>
-                )}
+               ) : null}
                 {plan.monthlyPrice && (
                   <span className="plan-monthly">
                     {plan.price === 0 ? 'Бесплатно' : `${plan.monthlyPrice} ₽/мес`}
