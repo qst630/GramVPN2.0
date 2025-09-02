@@ -3,6 +3,16 @@ import { Check, Copy, X } from 'lucide-react';
 import { useMarketing } from '../hooks/useMarketing';
 import { PromoCodeValidation } from '../types/user';
 
+interface SubscriptionPlan {
+  type: string;
+  name: string;
+  days: number;
+  price: number;
+  monthlyPrice?: number;
+  popular?: boolean;
+  discount?: string;
+}
+
 interface SubscriptionScreenProps {
   subscriptionPlans: SubscriptionPlan[];
   onShowPayment: (planType: string, promoCode?: string) => void;
@@ -17,38 +27,14 @@ interface Plan {
   id: PlanType;
   title: string;
   price: number;
+  originalPrice?: number;
+  hasDiscount?: boolean;
   monthlyPrice?: number;
   features: string;
   discount?: string;
   popular?: boolean;
   savings?: string;
 }
-
-const plans: Plan[] = [
-  {
-    id: '30days',
-    title: '30 дней',
-    price: 150,
-    features: 'Базовая защита'
-  },
-  {
-    id: '90days',
-    title: '90 дней',
-    price: 350,
-    monthlyPrice: 117,
-    features: 'Премиум защита + скидка',
-    discount: 'Экономия 100 ₽',
-    popular: true
-  },
-  {
-    id: '365days',
-    title: '365 дней',
-    price: 1100,
-    monthlyPrice: 92,
-    features: 'Максимальная выгода + бонусы',
-    discount: 'Экономия 1730 ₽'
-  }
-];
 
 export const SubscriptionScreen: React.FC<SubscriptionScreenProps> = ({ 
   subscriptionPlans,
@@ -144,9 +130,6 @@ export const SubscriptionScreen: React.FC<SubscriptionScreenProps> = ({
       features: 'Максимальная выгода + бонусы'
     }
   ];
-      setPromoValidation(validation);
-    }
-  };
 
   const togglePromoInput = () => {
     setShowPromoInput(!showPromoInput);
