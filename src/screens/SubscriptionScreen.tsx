@@ -226,7 +226,7 @@ export const SubscriptionScreen: React.FC<SubscriptionScreenProps> = ({
                 <div className="plan-name-container">
                   <span className="plan-name">
                     {plan.title} - 
-                    {plan.hasDiscount && plan.price === 0 ? (
+                    {plan.hasDiscount && getDiscountPercent(plan.id) === 100 ? (
                       <span className="free-price"> Бесплатно</span>
                     ) : plan.hasDiscount && plan.price > 0 ? (
                       <>
@@ -237,13 +237,13 @@ export const SubscriptionScreen: React.FC<SubscriptionScreenProps> = ({
                       <span>{plan.price} ₽</span>
                     )}
                   </span>
-                  {plan.hasDiscount && plan.price === 0 && (
+                  {plan.hasDiscount && getDiscountPercent(plan.id) === 100 && (
                     <span className="free-badge">Бесплатно</span>
                   )}
                   {plan.hasDiscount && plan.price > 0 && (
                     <span className="discount-badge">-{getDiscountPercent(plan.id)}%</span>
                   )}
-                  {plan.monthlyPrice && plan.price > 0 && (
+                  {plan.monthlyPrice && getDiscountPercent(plan.id) !== 100 && (
                     <span className="plan-monthly">{plan.monthlyPrice} ₽/мес</span>
                   )}
                 </div>
