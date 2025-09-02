@@ -251,11 +251,6 @@ export const SubscriptionScreen: React.FC<SubscriptionScreenProps> = ({
                 <X size={12} />
               </div>
             )}
-            {promoLoading && (
-              <div className="promo-loading">
-                Проверка...
-              </div>
-            )}
           </div>
         )}
       </div>
