@@ -448,15 +448,19 @@ class DirectSupabaseService {
 
   // Test connection to Supabase
   async testConnection(): Promise<{ success: boolean; error?: string }> {
+    console.log('🧪 ТЕСТИРОВАНИЕ ПОДКЛЮЧЕНИЯ К SUPABASE...');
+    
     if (this.isMockMode) {
+      console.log('🧪 Mock режим активен');
       return { success: false, error: 'Supabase not configured - running in mock mode' };
     }
 
     try {
-      console.log('🧪 Testing direct Supabase connection...');
+      console.log('🔗 URL:', import.meta.env.VITE_SUPABASE_URL);
+      console.log('🔑 Key length:', import.meta.env.VITE_SUPABASE_ANON_KEY?.length);
       
-      // Test 1: Basic API connectivity
-      console.log('📡 Step 1: Testing API endpoint...');
+      // Test 1: Basic connectivity
+      console.log('📡 Шаг 1: Тестирование API эндпоинта...');
       const healthResponse = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/rest/v1/`, {
         method: 'HEAD',
         headers: {
@@ -465,51 +469,59 @@ class DirectSupabaseService {
         }
       });
       
-      console.log('📡 API Response:', healthResponse.status, healthResponse.statusText);
+      console.log('📡 Ответ API:', healthResponse.status, healthResponse.statusText);
       
       if (!healthResponse.ok) {
-        throw new Error(`API not accessible: ${healthResponse.status} ${healthResponse.statusText}`);
+        if (healthResponse.status === 401) {
+          console.log('✅ API доступен (401 = нужна авторизация)');
+        } else {
+          throw new Error(`API недоступен: ${healthResponse.status} ${healthResponse.statusText}`);
+        }
       }
       
-      // Test 2: Check if users table exists
-      console.log('🗄️ Step 2: Testing users table...');
+      // Test 2: Check tables
+      console.log('🗄️ Шаг 2: Проверка таблицы users...');
       const { data, error } = await supabase
         .from('users')
         .select('count', { count: 'exact', head: true })
         .limit(1);
 
-      console.log('🗄️ Table query result:', { hasData: data !== null, error: error?.message, errorCode: error?.code });
+      console.log('🗄️ Результат запроса к таблице:', { 
+        hasData: data !== null, 
+        error: error?.message, 
+        errorCode: error?.code 
+      });
 
       if (error) {
-        if (error.code === '42P01') {
+        if (error.code === '42P01' || error.message?.includes('does not exist')) {
           return { 
             success: false, 
-            error: 'Database tables not found. Please run migrations in Supabase Dashboard → SQL Editor.' 
+            error: 'Таблицы БД не найдены. Создайте таблицы в Supabase Dashboard → SQL Editor.' 
           };
         }
         
         return { 
           success: false, 
-          error: `Database error: ${error.message}` 
+          error: `Ошибка БД: ${error.message}` 
         };
       }
 
-      console.log('✅ Supabase connection successful');
+      console.log('✅ Подключение к Supabase успешно');
       return { success: true };
 
     } catch (error) {
-      console.error('❌ Connection test error:', error);
+      console.error('❌ Ошибка тестирования подключения:', error);
       
       if (error instanceof TypeError && error.message.includes('Failed to fetch')) {
         return { 
           success: false, 
-          error: 'Network error: Cannot reach Supabase. Check URL and internet connection.' 
+          error: 'Сетевая ошибка: Не удается подключиться к Supabase. Проверьте URL и интернет.' 
         };
       }
       
       return { 
         success: false, 
-        error: error instanceof Error ? error.message : 'Unknown error' 
+        error: error instanceof Error ? error.message : 'Неизвестная ошибка' 
       };
     }
   }

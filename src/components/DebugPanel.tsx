@@ -175,80 +175,81 @@ export const DebugPanel: React.FC<DebugPanelProps> = ({ user, onRefresh }) => {
   const testDetailedConnection = async () => {
     setLoading(true);
     try {
-      addLog('🔍 COMPREHENSIVE NETWORK ANALYSIS...');
+      addLog('🔍 ПОШАГОВАЯ ДИАГНОСТИКА SUPABASE...');
       
       // Check environment
       const hasUrl = !!import.meta.env.VITE_SUPABASE_URL;
       const hasKey = !!import.meta.env.VITE_SUPABASE_ANON_KEY;
       
-      addLog(`📍 URL Present: ${hasUrl ? '✅' : '❌'}`);
-      addLog(`🔑 Key Present: ${hasKey ? '✅' : '❌'}`);
+      addLog(`ШАГ 1: Проверка переменных окружения`);
+      addLog(`📍 VITE_SUPABASE_URL: ${hasUrl ? '✅ ЕСТЬ' : '❌ НЕТ'}`);
+      addLog(`🔑 VITE_SUPABASE_ANON_KEY: ${hasKey ? '✅ ЕСТЬ' : '❌ НЕТ'}`);
       
       if (!hasUrl || !hasKey) {
-        addLog('🚨 CRITICAL: Environment variables missing!');
-        addLog('💡 SOLUTION: Click "Connect to Supabase" button in top right');
+        addLog('🚨 КРИТИЧЕСКАЯ ОШИБКА: Переменные окружения отсутствуют!');
+        addLog('💡 РЕШЕНИЕ: Нажмите "Connect to Supabase" в правом верхнем углу');
         return;
       }
       
       const url = import.meta.env.VITE_SUPABASE_URL;
       const key = import.meta.env.VITE_SUPABASE_ANON_KEY;
       
-      addLog(`📍 URL: ${url.substring(0, 50)}...`);
-      addLog(`🔑 Key: ${key.substring(0, 20)}... (${key.length} chars)`);
+      addLog(`📍 Полный URL: ${url}`);
+      addLog(`🔑 Ключ: ${key.substring(0, 30)}... (длина: ${key.length})`);
       
       // Validate URL format
-      addLog('🔍 URL VALIDATION...');
+      addLog(`ШАГ 2: Проверка формата URL`);
       const urlValid = url.startsWith('https://') && url.includes('.supabase.co');
-      addLog(`📍 URL Format Valid: ${urlValid ? '✅' : '❌'}`);
+      addLog(`📍 Формат URL правильный: ${urlValid ? '✅ ДА' : '❌ НЕТ'}`);
       
       if (!urlValid) {
-        addLog('❌ URL FORMAT ERROR: URL should be https://yourproject.supabase.co');
+        addLog('❌ ОШИБКА ФОРМАТА: URL должен быть https://yourproject.supabase.co');
         return;
       }
       
       // Extract project ID from URL
       const projectId = url.replace('https://', '').replace('.supabase.co', '');
-      addLog(`🆔 Project ID: ${projectId}`);
+      addLog(`🆔 ID проекта: ${projectId}`);
       
-      // Test 1: Basic domain resolution
-      addLog('🌐 TEST 1: Basic domain resolution...');
+      // Test 1: Basic connectivity
+      addLog(`ШАГ 3: Проверка доступности домена`);
       try {
-        const basicResponse = await fetch(url, { 
-          method: 'HEAD',
-          mode: 'no-cors'
-        });
-        addLog(`🌐 Domain reachable: ✅`);
+        const basicResponse = await fetch(url, { method: 'HEAD' });
+        addLog(`🌐 Домен доступен: ✅ (статус: ${basicResponse.status})`);
       } catch (domainError) {
-        addLog(`❌ DOMAIN ERROR: ${domainError.message}`);
-        addLog('💡 This suggests the Supabase project URL is wrong or project doesn\'t exist');
-        addLog('💡 Check your project at: https://supabase.com/dashboard');
+        addLog(`❌ ОШИБКА ДОМЕНА: ${domainError.message}`);
+        addLog('💡 Возможные причины:');
+        addLog('   - Неправильный URL проекта');
+        addLog('   - Проект не существует или удален');
+        addLog('   - Проект приостановлен');
+        addLog('💡 Проверьте проект: https://supabase.com/dashboard');
         return;
       }
       
-      // Test 2: Supabase API endpoint
-      addLog('🔌 TEST 2: Supabase API endpoint...');
+      // Test 2: API endpoint
+      addLog(`ШАГ 4: Проверка API эндпоинта`);
       try {
         const apiResponse = await fetch(`${url}/rest/v1/`, {
           method: 'HEAD'
         });
         
-        addLog(`🔌 API Status: ${apiResponse.status} ${apiResponse.statusText}`);
+        addLog(`🔌 Статус API: ${apiResponse.status} ${apiResponse.statusText}`);
         
         if (apiResponse.status === 401) {
-          addLog('✅ API ENDPOINT: Reachable (401 = needs auth, which is expected)');
+          addLog('✅ API ЭНДПОИНТ: Доступен (401 = нужна авторизация, это нормально)');
         } else if (apiResponse.ok) {
-          addLog('✅ API ENDPOINT: Reachable and accessible');
+          addLog('✅ API ЭНДПОИНТ: Доступен и работает');
         } else {
-          addLog(`⚠️ API ENDPOINT: Unexpected status ${apiResponse.status}`);
+          addLog(`⚠️ API ЭНДПОИНТ: Неожиданный статус ${apiResponse.status}`);
         }
       } catch (apiError) {
-        addLog(`❌ API ERROR: ${apiError.message}`);
-        addLog('💡 API endpoint not reachable - project might be paused or deleted');
+        addLog(`❌ ОШИБКА API: ${apiError.message}`);
+        addLog('💡 API недоступен - проект может быть приостановлен или удален');
         return;
       }
       
-      // Test 3: With authentication
-      addLog('🔐 TEST 3: Authentication test...');
+      // Test 3: Authentication
+      addLog(`ШАГ 5: Проверка авторизации`);
       try {
         const authResponse = await fetch(`${url}/rest/v1/`, {
           method: 'HEAD',
@@ -258,22 +259,22 @@ export const DebugPanel: React.FC<DebugPanelProps> = ({ user, onRefresh }) => {
           }
         });
         
-        addLog(`🔐 Auth Status: ${authResponse.status} ${authResponse.statusText}`);
+        addLog(`🔐 Статус авторизации: ${authResponse.status} ${authResponse.statusText}`);
         
         if (authResponse.ok) {
-          addLog('✅ AUTHENTICATION: Valid API key');
+          addLog('✅ АВТОРИЗАЦИЯ: API ключ действителен');
         } else if (authResponse.status === 401) {
-          addLog('❌ AUTHENTICATION: Invalid API key');
-          addLog('💡 Check your API key in Supabase Dashboard → Settings → API');
+          addLog('❌ АВТОРИЗАЦИЯ: Неверный API ключ');
+          addLog('💡 Проверьте ключ: Supabase Dashboard → Settings → API');
         } else {
-          addLog(`⚠️ AUTHENTICATION: Unexpected status ${authResponse.status}`);
+          addLog(`⚠️ АВТОРИЗАЦИЯ: Неожиданный статус ${authResponse.status}`);
         }
       } catch (authError) {
-        addLog(`❌ AUTH ERROR: ${authError.message}`);
+        addLog(`❌ ОШИБКА АВТОРИЗАЦИИ: ${authError.message}`);
       }
       
-      // Test 4: Database query
-      addLog('🗄️ TEST 4: Database query test...');
+      // Test 4: Database tables
+      addLog(`ШАГ 6: Проверка таблиц базы данных`);
       try {
         const dbResponse = await fetch(`${url}/rest/v1/users?select=count&limit=1`, {
           method: 'HEAD',
@@ -284,24 +285,26 @@ export const DebugPanel: React.FC<DebugPanelProps> = ({ user, onRefresh }) => {
           }
         });
         
-        addLog(`🗄️ DB Status: ${dbResponse.status} ${dbResponse.statusText}`);
+        addLog(`🗄️ Статус БД: ${dbResponse.status} ${dbResponse.statusText}`);
         
         if (dbResponse.ok) {
-          addLog('✅ DATABASE: Tables exist and accessible');
+          addLog('✅ БАЗА ДАННЫХ: Таблицы существуют и доступны');
+          addLog('🎉 ВСЕ РАБОТАЕТ! Можно использовать приложение');
         } else if (dbResponse.status === 404) {
-          addLog('❌ DATABASE: Table "users" not found');
-          addLog('💡 Run migrations in Supabase Dashboard → SQL Editor');
+          addLog('❌ БАЗА ДАННЫХ: Таблица "users" не найдена');
+          addLog('💡 РЕШЕНИЕ: Создать таблицы в Supabase Dashboard → SQL Editor');
+          addLog('💡 Нажмите кнопку "Create Tables" ниже');
         } else {
-          addLog(`⚠️ DATABASE: Status ${dbResponse.status}`);
+          addLog(`⚠️ БАЗА ДАННЫХ: Статус ${dbResponse.status}`);
         }
       } catch (dbError) {
-        addLog(`❌ DB ERROR: ${dbError.message}`);
+        addLog(`❌ ОШИБКА БД: ${dbError.message}`);
       }
       
-      addLog('🏁 ANALYSIS COMPLETE');
+      addLog('🏁 ДИАГНОСТИКА ЗАВЕРШЕНА');
       
     } catch (error) {
-      addLog(`❌ ANALYSIS ERROR: ${error}`);
+      addLog(`❌ ОШИБКА ДИАГНОСТИКИ: ${error}`);
     } finally {
       setLoading(false);
     }
@@ -425,20 +428,49 @@ export const DebugPanel: React.FC<DebugPanelProps> = ({ user, onRefresh }) => {
           
           <button 
             className="debug-button"
-            onClick={testDetailedConnection}
+            onClick={() => {
+              addLog('🚀 ЗАПУСК ПОЛНОЙ ДИАГНОСТИКИ...');
+              addLog('Это займет несколько секунд...');
+              testDetailedConnection();
+            }}
             disabled={loading}
           >
             <Database size={14} />
-            Network Analysis
+            Полная диагностика
           </button>
           
           <button 
             className="debug-button"
-            onClick={testRawFetch}
+            onClick={() => {
+              addLog('🔧 СОЗДАНИЕ ТАБЛИЦ В SUPABASE...');
+              addLog('');
+              addLog('1. Откройте: https://supabase.com/dashboard');
+              addLog('2. Выберите ваш проект');
+              addLog('3. Перейдите в SQL Editor');
+              addLog('4. Выполните этот SQL:');
+              addLog('');
+              addLog('CREATE TABLE users (');
+              addLog('  id SERIAL PRIMARY KEY,');
+              addLog('  telegram_id BIGINT UNIQUE NOT NULL,');
+              addLog('  username TEXT,');
+              addLog('  full_name TEXT,');
+              addLog('  referral_code TEXT UNIQUE NOT NULL,');
+              addLog('  referred_by INTEGER REFERENCES users(id),');
+              addLog('  subscription_status BOOLEAN DEFAULT FALSE,');
+              addLog('  subscription_link TEXT,');
+              addLog('  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP');
+              addLog(');');
+              addLog('');
+              addLog('ALTER TABLE users ENABLE ROW LEVEL SECURITY;');
+              addLog('CREATE POLICY "Allow all" ON users FOR ALL USING (true);');
+              addLog('');
+              addLog('5. Нажмите RUN');
+              addLog('6. Вернитесь сюда и нажмите "Полная диагностика"');
+            }}
             disabled={loading}
           >
-            <Wifi size={14} />
-            Raw Fetch Test
+            <Settings size={14} />
+            Создать таблицы
           </button>
           
           <button 
