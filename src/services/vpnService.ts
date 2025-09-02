@@ -7,29 +7,29 @@ class VPNService {
   private mockUsers: Map<number, User> = new Map();
 
   constructor() {
-    // Only use mock mode if explicitly no environment variables
-    this.isMockMode = false; // Force real mode initially
+    // Check if Supabase is configured
+    this.isMockMode = !import.meta.env.VITE_SUPABASE_URL || !import.meta.env.VITE_SUPABASE_ANON_KEY;
     console.log('🔧 VPNService initialized:', {
-      mockMode: false,
+      mockMode: this.isMockMode,
       hasUrl: !!import.meta.env.VITE_SUPABASE_URL,
       hasKey: !!import.meta.env.VITE_SUPABASE_ANON_KEY,
-      mode: '🌐 Real VPN Service (attempting)',
+      mode: this.isMockMode ? '🧪 Mock Mode' : '🌐 Real VPN Service',
       functionUrl: VPN_FUNCTION_URL
     });
   }
 
   private async callVPNFunction(action: string, payload: any): Promise<any> {
+    // If already in mock mode, handle immediately
+    if (this.isMockMode) {
+      console.log('🧪 Already in mock mode, handling request locally');
+      return this.handleMockRequest(action, payload);
+    }
+
     console.log('🌐 Calling VPN Function:', action, 'URL:', VPN_FUNCTION_URL);
     console.log('📡 Payload:', payload);
     console.log('🔑 Has Auth Key:', !!import.meta.env.VITE_SUPABASE_ANON_KEY);
 
     try {
-      if (!import.meta.env.VITE_SUPABASE_URL || !import.meta.env.VITE_SUPABASE_ANON_KEY) {
-        console.log('❌ Missing environment variables, switching to mock mode');
-        this.isMockMode = true;
-        return this.handleMockRequest(action, payload);
-      }
-
       const response = await fetch(VPN_FUNCTION_URL, {
         method: 'POST',
         headers: {

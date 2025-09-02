@@ -133,13 +133,3 @@ export const testConnectionWithRetry = async (retries = 3): Promise<{ success: b
 };
 
 // Auto-test connection on load
-if (supabaseUrl && supabaseAnonKey) {
-  console.log('🚀 Auto-testing Supabase connection...');
-  testSupabaseConnection().then(result => {
-    if (result.success) {
-      console.log('🎉 Auto-connection test: SUCCESS');
-    } else {
-      console.error('🚨 Auto-connection test: FAILED -', result.error);
-    }
-  });
-}

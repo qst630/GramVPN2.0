@@ -133,7 +133,7 @@ function App() {
   }
 
   // Show error state if there's a critical error (but only after app is ready)
-  if (appReady && error && !loading) {
+  if (appReady && error && !loading && !import.meta.env.VITE_SUPABASE_URL) {
     return (
       <div className="app-container">
         <div className="screen active" style={{ 
@@ -168,10 +168,7 @@ function App() {
               {error}
             </div>
             <p style={{ color: '#94a3b8', marginBottom: '20px', fontSize: '14px', lineHeight: '1.5' }}>
-              {!import.meta.env.VITE_SUPABASE_URL 
-                ? 'Нажмите "Connect to Supabase" в правом верхнем углу для настройки базы данных.'
-                : 'Проверьте подключение к интернету и настройки Supabase.'
-              }
+              Нажмите "Connect to Supabase" в правом верхнем углу для настройки базы данных.
             </p>
             <div style={{ display: 'flex', gap: '12px', flexDirection: 'column' }}>
               <button 
@@ -180,16 +177,6 @@ function App() {
                 style={{ margin: 0 }}
               >
                 Перезагрузить
-              </button>
-              <button 
-                className="secondary-button" 
-                onClick={() => {
-                  setActiveScreen('main');
-                  window.location.reload();
-                }}
-                style={{ margin: 0 }}
-              >
-                Демо режим
               </button>
             </div>
           </div>

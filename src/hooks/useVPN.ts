@@ -37,6 +37,25 @@ export const useVPN = (telegramUser: any, referralCode?: string): UseVPNReturn =
       return;
     }
 
+    // Check if Supabase is configured
+    if (!import.meta.env.VITE_SUPABASE_URL || !import.meta.env.VITE_SUPABASE_ANON_KEY) {
+      console.log('⚠️ Supabase not configured, using demo mode');
+      setUser({
+        id: Date.now(),
+        telegram_id: telegramUser.id,
+        username: telegramUser.username,
+        full_name: `${telegramUser.first_name} ${telegramUser.last_name || ''}`.trim(),
+        referral_code: `DEMO_${telegramUser.id}`,
+        subscription_status: false,
+        created_at: new Date().toISOString()
+      });
+      setSubscriptionType(null);
+      setDaysRemaining(0);
+      setHasActiveSubscription(false);
+      setReferralStats({ referrals_count: 0, bonus_days_earned: 0 });
+      setLoading(false);
+      return;
+    }
     console.log('🚀 Loading VPN user for Telegram ID:', telegramUser.id);
     setLoading(true);
 
@@ -70,10 +89,12 @@ export const useVPN = (telegramUser: any, referralCode?: string): UseVPNReturn =
       const errorMessage = err instanceof Error ? err.message : 'Failed to load user data';
       console.error('🚨 Setting error state:', errorMessage);
       
-      // Don't set error for network issues in Telegram - use fallback data instead
-      if (err instanceof TypeError && err.message.includes('Failed to fetch')) {
-        console.log('🔄 Network error detected, using fallback mode');
-        // Set minimal user data for demo mode
+      // Only show error if no Supabase connection configured
+      if (!import.meta.env.VITE_SUPABASE_URL || !import.meta.env.VITE_SUPABASE_ANON_KEY) {
+        setError('База данных не настроена. Нажмите "Connect to Supabase" для настройки.');
+      } else {
+        // For configured Supabase but connection issues, use fallback mode
+        console.log('🔄 Using fallback mode due to connection issues');
         setUser({
           id: Date.now(),
           telegram_id: telegramUser.id,
@@ -87,8 +108,6 @@ export const useVPN = (telegramUser: any, referralCode?: string): UseVPNReturn =
         setDaysRemaining(0);
         setHasActiveSubscription(false);
         setReferralStats({ referrals_count: 0, bonus_days_earned: 0 });
-      } else {
-        setError(errorMessage);
       }
     } finally {
       console.log('✅ Load VPN user process completed');
