@@ -185,7 +185,19 @@ export const useVPN = (telegramUser: any, referralCode?: string): UseVPNReturn =
       
       console.log('✅ Trial started successfully:', result.message);
       
-      // Refresh user data
+      // Update state immediately with the result data
+      if (result.user && result.subscriptionUrls?.v2raytun) {
+        setUser(prev => ({
+          ...result.user,
+          subscription_link: result.subscriptionUrls!.v2raytun
+        }));
+        setSubscriptionType('trial');
+        setDaysRemaining(3);
+        setHasActiveSubscription(true);
+        console.log('🔄 State updated with trial data');
+      }
+      
+      // Also refresh user data from database
       await loadUser();
       
     } catch (err) {

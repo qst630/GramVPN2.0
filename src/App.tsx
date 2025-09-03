@@ -237,7 +237,7 @@ function App() {
   return (
     <div className="app-container">
       {activeScreen === 'main' && (
-        hasActiveSubscription ? (
+        (hasActiveSubscription || user?.subscription_link) ? (
           <MainScreen
             user={user}
             freeTrialStatus={user ? {
