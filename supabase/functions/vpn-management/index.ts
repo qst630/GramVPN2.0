@@ -23,19 +23,47 @@ function generateReferralCode(telegramId: number): string {
   return code;
 }
 
-// Generate V2rayTun subscription link (mock implementation)
-function generateSubscriptionLink(userId: number, serverConfig: any): string {
-  // This would integrate with your actual V2rayTun API
-  const config = {
-    server: serverConfig.vless_domain || serverConfig.server_ip,
-    port: serverConfig.vless_port || 443,
-    id: `user_${userId}_${Date.now()}`,
-    path: serverConfig.vless_path || '/ws',
-    security: serverConfig.vless_security || 'tls',
-  };
+// Generate V2rayTun subscription link with multi-server support
+function generateSubscriptionLink(userId: number, serverConfigs: any[]): any {
+  const subscriptionContent = serverConfigs.map(config => {
+    const vlessConfig = {
+      server: config.vless_domain || config.server_ip,
+      port: config.vless_port || config.server_port || 443,
+      id: `user_${userId}_${Date.now()}_${config.id}`,
+      path: config.vless_path || '/ws',
+      security: config.vless_security || 'tls',
+      sni: config.vless_sni || 'google.com',
+      fp: config.vless_fp || 'chrome',
+      type: config.vless_type || 'tcp',
+      flow: config.vless_flow,
+      pbk: config.vless_public_key,
+      sid: config.vless_sid,
+      spx: config.vless_spx
+    };
+    
+    // Generate VLESS URL
+    const params = new URLSearchParams();
+    Object.entries(vlessConfig).forEach(([key, value]) => {
+      if (value && key !== 'server' && key !== 'port' && key !== 'id') {
+        params.set(key, value as string);
+      }
+    });
+    
+    return `vless://${vlessConfig.id}@${vlessConfig.server}:${vlessConfig.port}?${params.toString()}#${encodeURIComponent(`${config.country}-${config.server_name}`)}`;
+  }).join('\n');
   
-  // Return base64 encoded config for V2rayTun
-  return `v2ray://` + btoa(JSON.stringify(config));
+  const base64Content = btoa(unescape(encodeURIComponent(subscriptionContent)));
+  const baseUrl = 'https://vpntest.digital';
+  const expireTimestamp = Math.floor(Date.now() / 1000) + (30 * 24 * 60 * 60); // 30 days from now
+  
+  const directUrl = `${baseUrl}/subscription/${userId}?expire=${expireTimestamp}`;
+  
+  return {
+    direct: directUrl,
+    v2raytun: `v2raytun://import/${encodeURIComponent(directUrl)}`,
+    content: base64Content,
+    qr: `${baseUrl}/qr/${userId}?expire=${expireTimestamp}`
+  };
 }
 
 serve(async (req) => {
@@ -159,27 +187,38 @@ serve(async (req) => {
           throw new Error('User not found')
         }
 
-        // Check if user already has trial or subscription
+        // Check if user already has any subscription (including trial)
         const { data: existingSubscription } = await supabaseAdmin
           .from('subscriptions')
-          .select('id')
+          .select('id, subscription_type')
           .eq('user_id', user.id)
+          .eq('is_active', true)
           .single()
 
         if (existingSubscription) {
-          throw new Error('User already has a subscription')
+          throw new Error(`User already has an active ${existingSubscription.subscription_type} subscription`)
         }
 
-        // Get active server
-        const { data: server, error: serverError } = await supabaseAdmin
+        // Check if user has already used trial
+        const { data: previousTrial } = await supabaseAdmin
+          .from('subscriptions')
+          .select('id')
+          .eq('user_id', user.id)
+          .eq('subscription_type', 'trial')
+          .single()
+
+        if (previousTrial) {
+          throw new Error('User has already used their free trial')
+        }
+
+        // Get all active servers
+        const { data: servers, error: serversError } = await supabaseAdmin
           .from('servers')
           .select('*')
           .eq('status', true)
           .order('active_subscribers', { ascending: true })
-          .limit(1)
-          .single()
 
-        if (serverError || !server) {
+        if (serversError || !servers || servers.length === 0) {
           throw new Error('No active servers available')
         }
 
@@ -200,15 +239,15 @@ serve(async (req) => {
 
         if (subError) throw subError
 
-        // Generate subscription link
-        const subscriptionLink = generateSubscriptionLink(user.id, server)
+        // Generate subscription link for all servers
+        const subscriptionLinks = generateSubscriptionLink(user.id, servers)
 
         // Update user with subscription link and status
         const { data: updatedUser, error: updateError } = await supabaseAdmin
           .from('users')
           .update({
             subscription_status: true,
-            subscription_link: subscriptionLink
+            subscription_link: subscriptionLinks.direct
           })
           .eq('id', user.id)
           .select()
@@ -216,19 +255,35 @@ serve(async (req) => {
 
         if (updateError) throw updateError
 
-        // Update server subscriber count
+        // Update server subscriber counts
+        const updatePromises = servers.map(server =>
+          supabaseAdmin
+            .from('servers')
+            .update({
+              active_subscribers: server.active_subscribers + 1
+            })
+            .eq('id', server.id)
+        )
+        await Promise.allSettled(updatePromises)
+
+        // Create payment record for tracking
         await supabaseAdmin
-          .from('servers')
-          .update({
-            active_subscribers: server.active_subscribers + 1
+          .from('payments')
+          .insert({
+            user_id: user.id,
+            amount: 0,
+            payment_method: 'free_trial',
+            subscription_id: subscription.id
           })
-          .eq('id', server.id)
 
         return new Response(
           JSON.stringify({ 
+            success: true,
             user: updatedUser, 
             subscription,
-            server: server.country 
+            servers_count: servers.length,
+            subscription_links: subscriptionLinks,
+            message: `\ud83c\udf89 Free trial activated for 3 days with ${servers.length} server locations!`
           }),
           { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
         )
@@ -352,6 +407,161 @@ serve(async (req) => {
           JSON.stringify({ 
             valid: true, 
             promo_code: promoCode 
+          }),
+          { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        )
+      }
+
+      case 'create_free_subscription_with_promo': {
+        const { telegram_id, subscription_type, promo_code } = payload
+        
+        // Validate required parameters
+        if (!telegram_id || !subscription_type || !promo_code) {
+          throw new Error('Missing required parameters: telegram_id, subscription_type, promo_code')
+        }
+
+        // Get user
+        const { data: user, error: userError } = await supabaseAdmin
+          .from('users')
+          .select('id')
+          .eq('telegram_id', telegram_id)
+          .single()
+
+        if (userError || !user) {
+          throw new Error('User not found')
+        }
+
+        // Validate promo code
+        const { data: promoCode, error: promoError } = await supabaseAdmin
+          .from('promo_codes')
+          .select('*')
+          .eq('code', promo_code.toUpperCase())
+          .eq('is_active', true)
+          .single()
+
+        if (promoError || !promoCode) {
+          throw new Error('Invalid or inactive promo code')
+        }
+
+        // Check if promo code is 100% discount
+        if (promoCode.discount_percent < 100) {
+          throw new Error('This endpoint is only for 100% discount promo codes')
+        }
+
+        // Check expiration
+        if (promoCode.expires_at && new Date(promoCode.expires_at) < new Date()) {
+          throw new Error('Promo code has expired')
+        }
+
+        // Check usage limit
+        if (promoCode.max_usage && promoCode.usage_count >= promoCode.max_usage) {
+          throw new Error('Promo code has reached its usage limit')
+        }
+
+        // Calculate subscription duration
+        const daysMap = {
+          'trial': 3,
+          '30days': 30,
+          '90days': 90,
+          '365days': 365
+        }
+
+        const days = daysMap[subscription_type as keyof typeof daysMap]
+        if (!days) {
+          throw new Error('Invalid subscription type')
+        }
+
+        // Check for existing active subscription
+        const { data: existingSubscription } = await supabaseAdmin
+          .from('subscriptions')
+          .select('id, subscription_type')
+          .eq('user_id', user.id)
+          .eq('is_active', true)
+          .single()
+
+        if (existingSubscription) {
+          throw new Error(`User already has an active ${existingSubscription.subscription_type} subscription`)
+        }
+
+        // Get all active servers
+        const { data: servers, error: serversError } = await supabaseAdmin
+          .from('servers')
+          .select('*')
+          .eq('status', true)
+          .order('active_subscribers', { ascending: true })
+
+        if (serversError || !servers || servers.length === 0) {
+          throw new Error('No active servers available')
+        }
+
+        // Create subscription
+        const endDate = new Date()
+        endDate.setDate(endDate.getDate() + days)
+
+        const { data: subscription, error: subError } = await supabaseAdmin
+          .from('subscriptions')
+          .insert({
+            user_id: user.id,
+            subscription_type,
+            end_date: endDate.toISOString(),
+            is_active: true
+          })
+          .select()
+          .single()
+
+        if (subError) throw subError
+
+        // Create payment record with 100% discount
+        await supabaseAdmin
+          .from('payments')
+          .insert({
+            user_id: user.id,
+            amount: 0,
+            payment_method: 'promo_code_100',
+            subscription_id: subscription.id,
+            promo_code_used: promo_code.toUpperCase(),
+            discount_applied: 100
+          })
+
+        // Update promo code usage
+        await supabaseAdmin
+          .from('promo_codes')
+          .update({
+            usage_count: promoCode.usage_count + 1
+          })
+          .eq('id', promoCode.id)
+
+        // Generate subscription links for all servers
+        const subscriptionLinks = generateSubscriptionLink(user.id, servers)
+
+        // Update user with subscription link and status
+        await supabaseAdmin
+          .from('users')
+          .update({
+            subscription_status: true,
+            subscription_link: subscriptionLinks.direct
+          })
+          .eq('id', user.id)
+
+        // Update server subscriber counts
+        const updatePromises = servers.map(server =>
+          supabaseAdmin
+            .from('servers')
+            .update({
+              active_subscribers: server.active_subscribers + 1
+            })
+            .eq('id', server.id)
+        )
+        await Promise.allSettled(updatePromises)
+
+        return new Response(
+          JSON.stringify({ 
+            success: true,
+            subscription,
+            servers_count: servers.length,
+            subscription_links: subscriptionLinks,
+            promo_code: promoCode.code,
+            message: `\ud83c\udf89 100% promo code applied! Free ${subscription_type} subscription for ${days} days with ${servers.length} servers.`
           }),
           { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
         )

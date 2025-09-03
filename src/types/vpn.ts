@@ -29,6 +29,19 @@ export interface Server {
   vless_domain?: string;
   vless_port?: number;
   server_port?: number;
+  vless_type?: string;
+  vless_security?: string;
+  vless_fp?: string;
+  vless_sni?: string;
+  vless_sid?: string;
+  vless_spx?: string;
+  vless_flow?: string;
+  vless_public_key?: string;
+  vless_path?: string;
+  xui_api_url?: string;
+  xui_username?: string;
+  xui_password?: string;
+  inbound_id?: string;
   active_subscribers: number;
   server_role?: string;
 }
