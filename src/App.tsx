@@ -240,8 +240,13 @@ function App() {
         hasActiveSubscription ? (
           <MainScreen
             user={user}
-            subscriptionType={subscriptionType}
-            daysRemaining={daysRemaining}
+            freeTrialStatus={user ? {
+              available: subscriptionType !== 'trial',
+              used: subscriptionType === 'trial',
+              active: subscriptionType === 'trial',
+              expires_at: undefined,
+              days_remaining: subscriptionType === 'trial' ? daysRemaining : 0
+            } : null}
             onShowSubscription={handleShowSubscription}
             hasSubscriptionLink={!!user?.subscription_link}
           />
@@ -249,8 +254,15 @@ function App() {
           <WelcomeScreen
             onStartTrial={handleStartTrial}
             onShowSubscription={handleShowSubscription}
+            freeTrialStatus={user ? {
+              available: subscriptionType !== 'trial',
+              used: subscriptionType === 'trial',
+              active: subscriptionType === 'trial',
+              expires_at: undefined,
+              days_remaining: subscriptionType === 'trial' ? daysRemaining : 0
+            } : null}
             user={user}
-            hasActiveSubscription={hasActiveSubscription}
+            userExists={!!user}
             loading={loading}
           />
         )
@@ -262,7 +274,10 @@ function App() {
           onShowPayment={handleShowPayment}
           onValidatePromoCode={validatePromoCode}
           user={user}
-          referralStats={referralStats}
+          referralStats={{
+            invited: referralStats.referrals_count,
+            daysEarned: referralStats.bonus_days_earned
+          }}
           isCreatingSubscription={isCreatingSubscription}
         />
       )}

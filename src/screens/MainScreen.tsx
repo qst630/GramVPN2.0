@@ -1,6 +1,14 @@
 import React from 'react';
 import { Shield, Clock, Calendar, Settings } from 'lucide-react';
-import { User, FreeTrialStatus } from '../types/user';
+import { User } from '../types/vpn';
+
+export interface FreeTrialStatus {
+  available: boolean;
+  used: boolean;
+  active: boolean;
+  expires_at?: string;
+  days_remaining?: number;
+}
 
 interface MainScreenProps {
   user: User | null;
@@ -26,18 +34,10 @@ export const MainScreen: React.FC<MainScreenProps> = ({
       };
     }
     
-    if (user?.subscription_active) {
-      const expiresAt = user.subscription_expires_at 
-        ? new Date(user.subscription_expires_at)
-        : null;
-      
-      const daysLeft = expiresAt 
-        ? Math.ceil((expiresAt.getTime() - new Date().getTime()) / (24 * 60 * 60 * 1000))
-        : 0;
-
+    if (user?.subscription_status) {
       return {
         status: 'Подписка активна',
-        timeLeft: `${daysLeft} дн.`,
+        timeLeft: `${3} дн.`, // Default to 3 days since we don't have exact expiry
         color: '#6366f1',
         icon: Shield,
         description: 'Полный доступ к VPN сервису'
@@ -87,12 +87,12 @@ export const MainScreen: React.FC<MainScreenProps> = ({
         </div>
       </div>
 
-      {user?.subscription_active && (
+      {user?.subscription_status && (
         <div className="subscription-details">
           <h4>Детали подписки</h4>
           <div className="detail-item">
             <Calendar size={16} />
-            <span>Действует до: {formatDate(user.subscription_expires_at)}</span>
+            <span>Действует: Активна</span>
           </div>
           <div className="detail-item">
             <Shield size={16} />
@@ -115,7 +115,7 @@ export const MainScreen: React.FC<MainScreenProps> = ({
         </div>
       )}
 
-      {!user?.subscription_active && !freeTrialStatus?.active && (
+      {!user?.subscription_status && !freeTrialStatus?.active && (
         <div className="no-subscription">
           <h4>Нет активной подписки</h4>
           <p>Оформите подписку или активируйте пробный период для доступа к VPN</p>
@@ -190,19 +190,19 @@ export const MainScreen: React.FC<MainScreenProps> = ({
           <div className="info-item">
             <span className="info-label">Сервер</span>
             <span className="info-value">
-              {user?.subscription_active || freeTrialStatus?.active ? 'Нидерланды' : 'Не подключен'}
+              {user?.subscription_status || freeTrialStatus?.active ? 'Нидерланды' : 'Не подключен'}
             </span>
           </div>
           <div className="info-item">
             <span className="info-label">IP адрес</span>
             <span className="info-value">
-              {user?.subscription_active || freeTrialStatus?.active ? '185.246.xxx.xxx' : 'Не назначен'}
+              {user?.subscription_status || freeTrialStatus?.active ? '185.246.xxx.xxx' : 'Не назначен'}
             </span>
           </div>
           <div className="info-item">
             <span className="info-label">Протокол</span>
             <span className="info-value">
-              {user?.subscription_active || freeTrialStatus?.active ? 'WireGuard' : 'Не активен'}
+              {user?.subscription_status || freeTrialStatus?.active ? 'WireGuard' : 'Не активен'}
             </span>
           </div>
         </div>

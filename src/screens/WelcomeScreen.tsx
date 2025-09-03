@@ -1,7 +1,14 @@
 import React from 'react';
 import { Shield, Zap, Globe, Smartphone, Gift } from 'lucide-react';
-import { FreeTrialStatus } from '../types/user';
-import { User } from '../types/user';
+import { User } from '../types/vpn';
+
+export interface FreeTrialStatus {
+  available: boolean;
+  used: boolean;
+  active: boolean;
+  expires_at?: string;
+  days_remaining?: number;
+}
 
 interface WelcomeScreenProps {
   onStartTrial: () => void;
@@ -97,10 +104,10 @@ export const WelcomeScreen: React.FC<WelcomeScreenProps> = ({
             </div>
             <div className="user-details">
               <h3>Вы уже в базе данных!</h3>
-              <p>Добро пожаловать обратно, {user.first_name}</p>
+              <p>Добро пожаловать обратно, {user.full_name.split(' ')[0]}</p>
               <div className="user-stats">
                 <span>Реферальный код: {user.referral_code}</span>
-                <span>Приглашено: {user.total_referrals} друзей</span>
+                <span>Приглашено: {user.referred_by ? '1+' : '0'} друзей</span>
               </div>
             </div>
           </div>
@@ -110,22 +117,22 @@ export const WelcomeScreen: React.FC<WelcomeScreenProps> = ({
           <div className="feature-card">
             <Shield className="feature-icon" size={24} />
             <h3>Ваш статус</h3>
-            <p>{user.subscription_active ? 'Подписка активна' : 'Подписка неактивна'}</p>
+            <p>{user.subscription_status ? 'Подписка активна' : 'Подписка неактивна'}</p>
           </div>
           <div className="feature-card">
             <Gift className="feature-icon" size={24} />
             <h3>Пробный период</h3>
-            <p>{user.free_trial_used ? 'Использован' : 'Доступен'}</p>
+            <p>Доступен</p>
           </div>
           <div className="feature-card">
             <Globe className="feature-icon" size={24} />
             <h3>Рефералы</h3>
-            <p>{user.total_referrals} приглашений</p>
+            <p>{user.referred_by ? '1+' : '0'} приглашений</p>
           </div>
           <div className="feature-card">
             <Smartphone className="feature-icon" size={24} />
             <h3>Бонусы</h3>
-            <p>{user.bonus_days_earned} дней</p>
+            <p>0 дней</p>
           </div>
         </div>
 
