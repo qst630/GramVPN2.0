@@ -127,16 +127,59 @@ export const MainScreen: React.FC<MainScreenProps> = ({
 
       {user?.subscription_link && (
         <div className="connection-section">
-          <h4>Подключение к VPN</h4>
-          <p>Ваша конфигурация готова! Нажмите кнопку ниже для подключения:</p>
-          <button 
-            className="primary-button connect-button"
-            onClick={() => window.open(user.subscription_link, '_blank')}
-          >
-            🚀 Подключить VPN
-          </button>
+          <h4>🎉 Подписка активирована!</h4>
+          
+          {/* Step 1: Download V2rayTun */}
+          <div className="setup-step">
+            <div className="step-number">1</div>
+            <div className="step-content">
+              <h5>Скачайте приложение V2rayTun</h5>
+              <p>Для использования VPN вам необходимо установить клиент V2rayTun</p>
+              <div className="download-buttons">
+                <button 
+                  className="download-button android"
+                  onClick={() => window.open('https://play.google.com/store/apps/details?id=com.v2raytun.android', '_blank')}
+                >
+                  📱 Android
+                </button>
+                <button 
+                  className="download-button ios"
+                  onClick={() => window.open('https://apps.apple.com/app/v2raytun/id6476628951', '_blank')}
+                >
+                  🍎 iOS
+                </button>
+              </div>
+            </div>
+          </div>
+
+          {/* Step 2: Add Configuration */}
+          <div className="setup-step">
+            <div className="step-number">2</div>
+            <div className="step-content">
+              <h5>Добавьте конфигурацию</h5>
+              <p>После установки приложения нажмите кнопку ниже для автоматического добавления настроек:</p>
+              <button 
+                className="primary-button connect-button"
+                onClick={() => window.open(user.subscription_link, '_blank')}
+              >
+                ⚡ Добавить конфигурацию
+              </button>
+            </div>
+          </div>
+
           <div className="connection-help">
-            <p>После нажатия откроется приложение V2rayTun с вашими настройками</p>
+            <div className="help-item">
+              <span className="help-icon">💡</span>
+              <span>После нажатия автоматически откроется V2rayTun с готовыми настройками</span>
+            </div>
+            <div className="help-item">
+              <span className="help-icon">🔒</span>
+              <span>Все настройки уже оптимизированы для максимальной скорости и безопасности</span>
+            </div>
+            <div className="help-item">
+              <span className="help-icon">🌍</span>
+              <span>Доступ к серверам в разных странах для обхода любых блокировок</span>
+            </div>
           </div>
         </div>
       )}
