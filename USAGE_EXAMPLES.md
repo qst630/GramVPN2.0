@@ -88,9 +88,9 @@ Response:
   "subscription": {...},
   "servers_count": 3,
   "subscription_links": {
-    "direct": "https://connect.gramvpn.shop/subscription/123456789?expire=1234567890",
+    "direct": "https://vpntest.digital/subscription/123456789?expire=1234567890",
     "v2raytun": "v2raytun://import/...",
-    "qr": "https://connect.gramvpn.shop/qr/123456789?expire=1234567890"
+    "qr": "https://vpntest.digital/qr/123456789?expire=1234567890"
   },
   "message": "🎉 Free trial activated for 3 days with 3 server locations!"
 }

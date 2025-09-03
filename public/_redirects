@@ -1,0 +1,5 @@
+# Force HTTPS redirect
+http://vpntest.digital/* https://vpntest.digital/:splat 301!
+
+# SPA routing - send all requests to index.html
+/*    /index.html   200

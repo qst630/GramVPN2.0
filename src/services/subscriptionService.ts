@@ -350,7 +350,7 @@ class SubscriptionService {
       full_name: 'Mock User',
       referral_code: `MOCK_${params.telegramId}`,
       subscription_status: true,
-      subscription_link: `https://connect.gramvpn.shop/subscription/${params.telegramId}?expire=${Math.floor(expiryDate.getTime() / 1000)}`,
+      subscription_link: `https://vpntest.digital/subscription/${params.telegramId}?expire=${Math.floor(expiryDate.getTime() / 1000)}`,
       created_at: new Date().toISOString()
     };
 
@@ -367,7 +367,7 @@ class SubscriptionService {
     const mockSubscriptionUrls = {
       direct: mockUser.subscription_link!,
       v2raytun: `v2raytun://import/${encodeURIComponent(mockUser.subscription_link!)}`,
-      qr: `https://connect.gramvpn.shop/qr/${params.telegramId}`
+      qr: `https://vpntest.digital/qr/${params.telegramId}`
     };
 
     const mockContent = btoa('# Mock Subscription Content\nvless://mock-config-1\nvless://mock-config-2');
