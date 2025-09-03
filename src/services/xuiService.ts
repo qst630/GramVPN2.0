@@ -21,6 +21,8 @@ interface XUIServer {
   vless_sid?: string;
   vless_spx?: string;
   vless_flow?: string;
+  limitIp?: number;
+  alterId?: number;
 }
 
 interface XUIClient {
@@ -32,6 +34,9 @@ interface XUIClient {
   enable: boolean;
   tgId: string;
   subId: string;
+  alterId?: number;
+  flow?: string;
+  reset?: number;
 }
 
 interface VLESSConfig {
@@ -137,7 +142,7 @@ class XUIService {
     }
   }
 
-  // Add client to 3x-ui panel with better error handling
+  // Add client to 3x-ui panel using the proven Python pattern
   async addClient(
     server: XUIServer, 
     sessionCookie: string, 
@@ -150,78 +155,53 @@ class XUIService {
     console.log(`👤 Adding client to panel ${server.server_name}:`, clientData);
     
     try {
-      // Check if client already exists
-      const existingClient = await this.findExistingClient(server, sessionCookie, clientData.telegramId);
-      if (existingClient) {
-        console.log('🔄 Updating existing client instead of creating new one');
-        return await this.updateClientExpiry(server, sessionCookie, existingClient, clientData.expiryDays);
-      }
-
-      // Generate client configuration
+      // Generate client configuration (following Python create_vless_account pattern)
       const clientId = this.generateUUID();
-      const clientEmail = `${clientData.subscriptionType}_${clientData.telegramId}_${Date.now()}`;
-      const expiryTime = Date.now() + (clientData.expiryDays * 24 * 60 * 60 * 1000);
+      const remark = `${clientData.subscriptionType}_${clientData.telegramId}_${Date.now()}`;
+      const expiryTime = Date.now() + (clientData.expiryDays * 24 * 60 * 60 * 1000); // milliseconds like Python
       
       const client: XUIClient = {
         id: clientId,
-        email: clientEmail,
-        limitIp: 3, // Allow 3 simultaneous connections for better user experience
+        email: remark, // Use as remark for identification
+        limitIp: server.limitIp || 0, // From server config
         totalGB: 0, // Unlimited traffic
         expiryTime: expiryTime,
         enable: true,
-        tgId: clientData.telegramId.toString(),
-        subId: this.generateSubId(),
+        tgId: remark, // Use remark as tgId for identification
+        subId: "",
+        alterId: server.alterId || 0,
+        flow: server.vless_flow || "",
+        reset: 0
       };
 
-      // Get current inbound to update clients
-      const inbound = await this.getInbound(server, sessionCookie);
-      if (!inbound) {
-        throw new Error(`Inbound ${server.inbound_id} not found on server ${server.server_name}`);
-      }
+      // Use the correct X-UI API endpoint like Python code
+      const clientSettings = {
+        clients: [client]
+      };
 
-      const settings = JSON.parse(inbound.settings);
-      
-      // Add new client to existing clients
-      if (!settings.clients) {
-        settings.clients = [];
-      }
-      
-      // Prevent duplicate clients
-      const clientExists = settings.clients.some((c: any) => c.tgId === clientData.telegramId.toString());
-      if (clientExists) {
-        throw new Error(`Client already exists for Telegram ID: ${clientData.telegramId}`);
-      }
-      
-      settings.clients.push(client);
+      const payload = {
+        id: parseInt(server.inbound_id),
+        settings: JSON.stringify(clientSettings)
+      };
 
-      // Update inbound with new client
-      const updateResponse = await fetch(`${server.xui_api_url}/panel/api/inbounds/update/${server.inbound_id}`, {
+      const addClientResponse = await fetch(`${server.xui_api_url}/panel/api/inbounds/addClient`, {
         method: 'POST',
         headers: {
           'Cookie': sessionCookie,
-          'Content-Type': 'application/x-www-form-urlencoded',
-          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
+          'Content-Type': 'application/json',
+          'Accept': 'application/json'
         },
-        body: new URLSearchParams({
-          up: inbound.up.toString(),
-          down: inbound.down.toString(),
-          total: inbound.total.toString(),
-          remark: inbound.remark,
-          enable: 'true',
-          expiryTime: inbound.expiryTime.toString(),
-          listen: inbound.listen,
-          port: inbound.port.toString(),
-          protocol: inbound.protocol,
-          settings: JSON.stringify(settings),
-          streamSettings: inbound.streamSettings,
-          sniffing: inbound.sniffing,
-        }),
+        body: JSON.stringify(payload)
       });
 
-      if (!updateResponse.ok) {
-        const errorText = await updateResponse.text();
-        throw new Error(`Update inbound failed with status ${updateResponse.status}: ${errorText}`);
+      if (!addClientResponse.ok) {
+        const errorText = await addClientResponse.text();
+        console.error('Add client response:', addClientResponse.status, errorText);
+        throw new Error(`Add client failed with status ${addClientResponse.status}: ${errorText}`);
       }
+
+      const responseData = await addClientResponse.json();
+      console.log('✅ Add client response:', responseData);
 
       console.log(`✅ Client added successfully to ${server.server_name}`);
       return client;
@@ -253,30 +233,26 @@ class XUIService {
     };
   }
 
-  // Generate VLESS URL
+  // Generate VLESS URL (following Python build_vless_link pattern)
   generateVLESSUrl(config: VLESSConfig, serverName: string): string {
-    const params = new URLSearchParams();
+    const host = config.server;
+    const port = config.port;
+    const clientId = config.id;
+    const email = serverName;
     
-    // Add parameters based on protocol type
-    params.set('type', config.type);
-    params.set('security', config.security);
-    params.set('fp', config.fp);
+    // Build VLESS URL exactly like Python build_vless_link function
+    const url = `vless://${clientId}@${host}:${port}` +
+      `?type=${config.type || 'tcp'}` +
+      `&security=${config.security || 'reality'}` +
+      `&pbk=${config.pbk || ''}` +
+      `&fp=${config.fp || 'chrome'}` +
+      `&sni=${config.sni || ''}` +
+      `&sid=${config.sid || ''}` +
+      `&spx=${encodeURIComponent(config.spx || '/')}` +
+      `&flow=${config.flow || ''}` +
+      `#${encodeURIComponent(email)}`;
     
-    if (config.security === 'reality') {
-      // Reality protocol parameters
-      if (config.pbk) params.set('pbk', config.pbk);
-      if (config.sni) params.set('sni', config.sni);
-      if (config.sid) params.set('sid', config.sid);
-      if (config.spx) params.set('spx', config.spx);
-      if (config.flow) params.set('flow', config.flow);
-    } else {
-      // TLS/WS parameters
-      if (config.path) params.set('path', config.path);
-      if (config.host) params.set('host', config.host);
-      if (config.sni) params.set('sni', config.sni);
-    }
-
-    return `vless://${config.id}@${config.server}:${config.port}?${params.toString()}#${encodeURIComponent(serverName)}`;
+    return url;
   }
 
   // Generate subscription URL for V2rayTun with better encoding
